@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unstable Unicorns - Versión 0.9</title>
+<title>Unstable Unicorns - Versión 1</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-  // Tu código de configuración va aquí
+  // Tu configuración de Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyAK0FYHprLSJ_SXTk3IhQIj4TiLfopn-WM",
     authDomain: "unicornios-inestables.firebaseapp.com",
@@ -17,12 +21,10 @@
     messagingSenderId: "955258363437",
     appId: "1:955258363437:web:4f1422dc59155035cd22a4"
   };
+  // Inicializa Firebase
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
 </script>
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 * {
 margin: 0;
@@ -564,7 +566,7 @@ background: 'rgba(0, 0, 0, 0.9)',
 display: 'flex',
 alignItems: 'center',
 justifyContent: 'center',
-zIndex: 10001,
+z-index: 10001,
 padding: '20px'
 }}
 onClick={() => setZoomedCard(null)}
@@ -669,7 +671,8 @@ players: [{ name: playerName, id: Date.now(), isHost: true }],
 state: 'waiting',
 createdAt: Date.now()
 };
-localStorage.setItem(`room:${code}`, JSON.stringify(room));
+// Usar Firebase en lugar de localStorage
+await database.ref(`rooms/${code}`).set(room);
 setRoomCode(code);
 setCurrentRoom(room);
 setIsHost(true);
@@ -681,18 +684,20 @@ if (!playerName.trim() || !roomCode.trim()) {
 alert('Por favor ingresa tu nombre y el código de sala');
 return;
 }
-const result = localStorage.getItem(`room:${roomCode.toUpperCase()}`);
-if (!result) {
+// Usar Firebase en lugar de localStorage
+const snapshot = await database.ref(`rooms/${roomCode.toUpperCase()}`).get();
+if (!snapshot.exists()) {
 alert('Sala no encontrada');
 return;
 }
-const room = JSON.parse(result);
+const room = snapshot.val();
 if (room.players.length >= room.numPlayers) {
 alert('La sala está llena');
 return;
 }
 room.players.push({ name: playerName, id: Date.now(), isHost: false });
-localStorage.setItem(`room:${roomCode.toUpperCase()}`, JSON.stringify(room));
+// Usar Firebase en lugar de localStorage
+await database.ref(`rooms/${roomCode.toUpperCase()}`).set(room);
 setCurrentRoom(room);
 setPlayers(room.players);
 setGameState('lobby');
@@ -700,16 +705,18 @@ setGameState('lobby');
 const startGame = async () => {
 if (!isHost) return;
 const updatedRoom = { ...currentRoom, state: 'baby-selection' };
-localStorage.setItem(`room:${roomCode}`, JSON.stringify(updatedRoom));
+// Usar Firebase en lugar de localStorage
+await database.ref(`rooms/${roomCode}`).set(updatedRoom);
 setCurrentRoom(updatedRoom);
 setGameState('baby-selection');
 };
 useEffect(() => {
-if (gameState === 'lobby' && currentRoom) {
-const interval = setInterval(() => {
-const result = localStorage.getItem(`room:${roomCode}`);
-if (result) {
-const room = JSON.parse(result);
+if (gameState === 'lobby' && roomCode) {
+const roomRef = database.ref(`rooms/${roomCode}`);
+  
+const handleRoomUpdate = (snapshot) => {
+if (snapshot.exists()) {
+const room = snapshot.val();
 setPlayers(room.players);
 setCurrentRoom(room);
 if (room.state === 'baby-selection' && gameState === 'lobby') {
@@ -719,8 +726,13 @@ if (room.state === 'playing' && gameState === 'lobby') {
 setGameState('playing');
 }
 }
-}, 1000);
-return () => clearInterval(interval);
+};
+
+roomRef.on('value', handleRoomUpdate);
+
+return () => {
+roomRef.off('value', handleRoomUpdate);
+};
 }
 }, [gameState, roomCode]);
 if (gameState === 'menu') {
@@ -1171,7 +1183,7 @@ const [draggedCard, setDraggedCard] = useState(null);
 const [dragSource, setDragSource] = useState(null);
 const [showDeckModal, setShowDeckModal] = useState(false);
 const [showDiscardModal, setShowDiscardModal] = useState(false);
-const [showGuarderiaModal, setShowGuarderiaModal] = useState(false); // NUEVO
+const [showGuarderiaModal, setShowGuarderiaModal] = useState(false);
 // NUEVOS ESTADOS PARA LAS FUNCIONES SOLICITADAS
 const [selectedCardAction, setSelectedCardAction] = useState(null);
 const [targetPlayer, setTargetPlayer] = useState(null);
@@ -1207,7 +1219,7 @@ guarderia.push(cardWithId);
 } else {
 // El resto va al mazo
 for (let i = 0; i < card.quantity; i++) {
-deck.push({...card, id: `${card.filename}-${i}-${Date.now()}`});
+deck.push({...card, id: `${card.filename}-${i}-${Date.now()}`);
 }
 }
 });
@@ -1245,18 +1257,21 @@ currentPlayer: players[0].name,
 unicornsToWin: numPlayers >= 6 ? 6 : 7,
 lastUpdate: Date.now()
 };
-localStorage.setItem(`game:${roomCode}`, JSON.stringify(game));
+// Usar Firebase en lugar de localStorage
+database.ref(`games/${roomCode}`).set(game);
 setGameData(game);
 setMyHand(game.playerHands[playerName]);
 showMessage(`Turno de ${game.currentPlayer}`);
 };
 const syncGame = () => {
-const result = localStorage.getItem(`game:${roomCode}`);
-if (result) {
-const game = JSON.parse(result);
+// Usar Firebase en lugar de localStorage
+database.ref(`games/${roomCode}`).once('value').then(snapshot => {
+if (snapshot.exists()) {
+const game = snapshot.val();
 setGameData(game);
 setMyHand(game.playerHands[playerName] || []);
 }
+});
 };
 useEffect(() => {
 const interval = setInterval(syncGame, 1000);
@@ -1268,7 +1283,8 @@ setTimeout(() => setMessage(''), 3000);
 };
 const updateGame = (newGameData) => {
 newGameData.lastUpdate = Date.now();
-localStorage.setItem(`game:${roomCode}`, JSON.stringify(newGameData));
+// Usar Firebase en lugar de localStorage
+database.ref(`games/${roomCode}`).set(newGameData);
 setGameData(newGameData);
 setMyHand(newGameData.playerHands[playerName]);
 };

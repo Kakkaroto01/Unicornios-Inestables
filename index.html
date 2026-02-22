@@ -1284,14 +1284,14 @@ setMyHand(game.playerHands[playerName]);
 showMessage(`Turno de ${game.currentPlayer}`);
 };
 const syncGame = () => {
-// Usar Firebase en lugar de localStorage
-database.ref(`games/${roomCode}`).once('value').then(snapshot => {
-if (snapshot.exists()) {
-const game = snapshot.val();
-setGameData(game);
-setMyHand(game.playerHands[playerName] || []);
-}
-});
+  database.ref(`games/${roomCode}`).once('value').then(snapshot => {
+    if (snapshot.exists()) {
+      const game = snapshot.val();
+      setGameData(game);
+      setMyHand(game.playerHands[playerName] || []);
+    }
+  });
+};
 };
 useEffect(() => {
 const interval = setInterval(syncGame, 1000);

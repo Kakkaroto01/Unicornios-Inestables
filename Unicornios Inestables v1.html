@@ -21,9 +21,29 @@
     messagingSenderId: "955258363437",
     appId: "1:955258363437:web:4f1422dc59155035cd22a4"
   };
-  // Inicializa Firebase
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
+  
+  // 👇 CÓDIGO DE VERIFICACIÓN - AGREGA ESTO AQUÍ 👇
+  database.ref('.info/connected').on('value', (snapshot) => {
+    console.log("Conexión a Firebase:", snapshot.val() ? "Conectado" : "Desconectado");
+  });
+  
+  // Prueba de escritura y lectura
+  const testRef = database.ref('test-connection');
+  testRef.set({
+    timestamp: Date.now(),
+    message: "¡Conexión exitosa!"
+  }).then(() => {
+    console.log("Escritura exitosa a Firebase");
+    
+    testRef.once('value').then(snapshot => {
+      console.log("Lectura exitosa de Firebase:", snapshot.val());
+    });
+  }).catch(error => {
+    console.error("Error con Firebase:", error);
+  });
+  // 👆 CÓDIGO DE VERIFICACIÓN - HASTA AQUÍ 👆
 </script>
 <style>
 * {

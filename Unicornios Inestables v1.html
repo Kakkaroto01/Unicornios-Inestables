@@ -1,0 +1,2391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unstable Unicorns - Versión 0.9</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+  // Tu código de configuración va aquí
+  const firebaseConfig = {
+    apiKey: "AIzaSyAK0FYHprLSJ_SXTk3IhQIj4TiLfopn-WM",
+    authDomain: "unicornios-inestables.firebaseapp.com",
+    databaseURL: "https://unicornios-inestables-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "unicornios-inestables",
+    storageBucket: "unicornios-inestables.firebasestorage.app",
+    messagingSenderId: "955258363437",
+    appId: "1:955258363437:web:4f1422dc59155035cd22a4"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+</script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+body {
+font-family: 'Comic Sans MS', cursive, sans-serif;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+height: 100vh;
+overflow: hidden;
+}
+#root {
+height: 100vh;
+}
+.sparkle {
+position: fixed;
+width: 4px;
+height: 4px;
+background: white;
+border-radius: 50%;
+pointer-events: none;
+animation: sparkle 1s ease-out forwards;
+z-index: 9999;
+}
+@keyframes sparkle {
+0% {
+opacity: 1;
+transform: scale(0) translateY(0);
+}
+100% {
+opacity: 0;
+transform: scale(1) translateY(-50px);
+}
+}
+.rainbow-text {
+background: linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0, #ff0080);
+background-size: 200% 100%;
+-webkit-background-clip: text;
+background-clip: text;
+-webkit-text-fill-color: transparent;
+animation: rainbow 3s linear infinite;
+}
+@keyframes rainbow {
+0% { background-position: 0% 50%; }
+100% { background-position: 200% 50%; }
+}
+.card-zoom-overlay {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(0, 0, 0, 0.8);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 10000;
+cursor: pointer;
+animation: fadeIn 0.2s;
+}
+@keyframes fadeIn {
+from { opacity: 0; }
+to { opacity: 1; }
+}
+.card-zoom-image {
+max-width: 90vw;
+max-height: 90vh;
+border-radius: 15px;
+box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+animation: zoomIn 0.3s;
+}
+@keyframes zoomIn {
+from {
+transform: scale(0.5);
+opacity: 0;
+}
+to {
+transform: scale(1);
+opacity: 1;
+}
+}
+.card-draggable {
+cursor: grab;
+transition: transform 0.2s, opacity 0.2s;
+}
+.card-draggable:hover {
+transform: translateY(-3px) scale(1.02);
+}
+.card-dragging {
+opacity: 0.5;
+cursor: grabbing;
+}
+.drop-zone {
+transition: all 0.3s;
+position: relative;
+}
+.drop-zone-active {
+border: 3px solid #27ae60 !important;
+background: rgba(39, 174, 96, 0.1) !important;
+box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+}
+.drop-zone-active::after {
+content: '↓ Suelta aquí';
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+background: rgba(39, 174, 96, 0.95);
+color: white;
+padding: 8px 15px;
+border-radius: 8px;
+font-size: 1rem;
+font-weight: bold;
+pointer-events: none;
+z-index: 10;
+animation: pulse 1s infinite;
+}
+@keyframes pulse {
+0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.05); }
+}
+.modal-overlay {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(0, 0, 0, 0.7);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 9999;
+padding: 20px;
+}
+.modal-content {
+background: white;
+border-radius: 15px;
+padding: 30px;
+max-width: 1000px;
+width: 100%;
+max-height: 85vh;
+overflow-y: auto;
+}
+.modal-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 20px;
+}
+.baby-selection-overlay {
+position: fixed;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: rgba(0, 0, 0, 0.9);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 10001;
+padding: 20px;
+}
+.baby-selection-content {
+background: white;
+border-radius: 20px;
+padding: 40px;
+max-width: 1200px;
+width: 100%;
+max-height: 90vh;
+overflow-y: auto;
+}
+.baby-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+gap: 15px;
+margin-top: 30px;
+}
+.baby-card {
+cursor: pointer;
+transition: all 0.3s;
+border-radius: 15px;
+overflow: hidden;
+border: 4px solid transparent;
+}
+.baby-card:hover {
+transform: scale(1.05) translateY(-5px);
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.baby-card-selected {
+border-color: #27ae60;
+box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+}
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+width: 8px;
+height: 8px;
+}
+::-webkit-scrollbar-track {
+background: rgba(0, 0, 0, 0.1);
+border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+background: rgba(102, 126, 234, 0.5);
+border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+background: rgba(102, 126, 234, 0.8);
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+// Catálogo completo de cartas
+const CARD_CATALOG = [
+{"filename": "0001", "name": "Agitar", "type": "magic", "quantity": 1, "original_file": "Agitar M.jpg", "bannedIn1v1": false},
+{"filename": "0002", "name": "Alambre", "type": "downgrade", "quantity": 1, "original_file": "Alambre D.jpg", "bannedIn1v1": false},
+{"filename": "0003", "name": "Americornio", "type": "magic", "quantity": 1, "original_file": "Americornio UM.jpg", "bannedIn1v1": false},
+{"filename": "0004", "name": "Aura arcoiris", "type": "upgrade", "quantity": 1, "original_file": "Aura arcoiris U.jpg", "bannedIn1v1": false},
+{"filename": "0005", "name": "Bebe Unicornio 1", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 1.jpg", "bannedIn1v1": false},
+{"filename": "0006", "name": "Bebe Unicornio 10", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 10.jpg", "bannedIn1v1": false},
+{"filename": "0007", "name": "Bebe Unicornio 11", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 11.jpg", "bannedIn1v1": false},
+{"filename": "0008", "name": "Bebe Unicornio 12", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 12.jpg", "bannedIn1v1": false},
+{"filename": "0009", "name": "Bebe Unicornio 2", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 2.jpg", "bannedIn1v1": false},
+{"filename": "0010", "name": "Bebe Unicornio 3", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 3.jpg", "bannedIn1v1": false},
+{"filename": "0011", "name": "Bebe Unicornio 4", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 4.jpg", "bannedIn1v1": false},
+{"filename": "0012", "name": "Bebe Unicornio 5", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 5.jpg", "bannedIn1v1": false},
+{"filename": "0013", "name": "Bebe Unicornio 6", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 6.jpg", "bannedIn1v1": false},
+{"filename": "0014", "name": "Bebe Unicornio 7", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 7.jpg", "bannedIn1v1": false},
+{"filename": "0015", "name": "Bebe Unicornio 8", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 8.jpg", "bannedIn1v1": false},
+{"filename": "0016", "name": "Bebe Unicornio 9", "type": "baby", "quantity": 1, "original_file": "Bebe Unicornio 9.jpg", "bannedIn1v1": false},
+{"filename": "0017", "name": "Bebe narval", "type": "baby", "quantity": 1, "original_file": "Bebe narval.jpg", "bannedIn1v1": false},
+{"filename": "0018", "name": "Blanco fijado", "type": "magic", "quantity": 1, "original_file": "Blanco fijado M.jpg", "bannedIn1v1": false},
+{"filename": "0019", "name": "Bomba", "type": "upgrade", "quantity": 1, "original_file": "Bomba U.jpg", "bannedIn1v1": false},
+{"filename": "0020", "name": "Boton reseteo", "type": "magic", "quantity": 1, "original_file": "Boton reseteo M.jpg", "bannedIn1v1": false},
+{"filename": "0021", "name": "Caballero Negro", "type": "magic", "quantity": 1, "original_file": "Caballero Negro UM.jpg", "bannedIn1v1": false},
+{"filename": "0022", "name": "Camara para la niñera", "type": "downgrade", "quantity": 1, "original_file": "Camara para la niñera D.jpg", "bannedIn1v1": false},
+{"filename": "0023", "name": "Cambio de objetivo", "type": "magic", "quantity": 1, "original_file": "Cambio de objetivo M.jpg", "bannedIn1v1": false},
+{"filename": "0024", "name": "Coz", "type": "magic", "quantity": 1, "original_file": "Coz M.jpg", "bannedIn1v1": false},
+{"filename": "0025", "name": "Cuerno maiz", "type": "magic", "quantity": 1, "original_file": "Cuerno maiz UM.jpg", "bannedIn1v1": false},
+{"filename": "0026", "name": "Doble comba", "type": "upgrade", "quantity": 1, "original_file": "Doble comba U.jpg", "bannedIn1v1": false},
+{"filename": "0027", "name": "Establo Pequeño", "type": "downgrade", "quantity": 1, "original_file": "Establo Pequeño D.jpg", "bannedIn1v1": false},
+{"filename": "0028", "name": "Establo en obras", "type": "downgrade", "quantity": 1, "original_file": "Establo en obras D.jpg", "bannedIn1v1": false},
+{"filename": "0029", "name": "Ganga", "type": "magic", "quantity": 1, "original_file": "Ganga M.jpg", "bannedIn1v1": false},
+{"filename": "0030", "name": "Gaticornio", "type": "magic", "quantity": 1, "original_file": "Gaticornio UM.jpg", "bannedIn1v1": false},
+{"filename": "0031", "name": "Golpe de suerte", "type": "magic", "quantity": 1, "original_file": "Golpe de suerte M.jpg", "bannedIn1v1": false},
+{"filename": "0032", "name": "Gran Narval", "type": "magic", "quantity": 1, "original_file": "Gran Narval UM.jpg", "bannedIn1v1": false},
+{"filename": "0033", "name": "Hurra", "type": "upgrade", "quantity": 1, "original_file": "Hurra U.jpg", "bannedIn1v1": false},
+{"filename": "0034", "name": "Intercambio Unicornios", "type": "magic", "quantity": 1, "original_file": "Intercambio Unicornios M.jpg", "bannedIn1v1": false},
+{"filename": "0035", "name": "Luz cegadora", "type": "downgrade", "quantity": 1, "original_file": "Luz cegadora D.jpg", "bannedIn1v1": false},
+{"filename": "0036", "name": "Narval con clase", "type": "magic", "quantity": 1, "original_file": "Narval con clase UM.jpg", "bannedIn1v1": false},
+{"filename": "0037", "name": "Narval pirata", "type": "magic", "quantity": 1, "original_file": "Narval pirata UM.jpg", "bannedIn1v1": false},
+{"filename": "0038", "name": "dos por uno", "type": "magic", "quantity": 1, "original_file": "dos por uno M.jpg", "bannedIn1v1": false},
+{"filename": "0039", "name": "Narval seductor", "type": "magic", "quantity": 1, "original_file": "Narval seductor UM.jpg", "bannedIn1v1": false},
+{"filename": "0040", "name": "Narval torpedo", "type": "magic", "quantity": 1, "original_file": "Narval torpedo UM.jpg", "bannedIn1v1": false},
+{"filename": "0041", "name": "Pandamonium", "type": "downgrade", "quantity": 1, "original_file": "Pandamonium D.jpg", "bannedIn1v1": false},
+{"filename": "0042", "name": "Ralentizacion", "type": "downgrade", "quantity": 1, "original_file": "Ralentizacion D.jpg", "bannedIn1v1": false},
+{"filename": "0043", "name": "Relincho", "type": "instant", "quantity": 2, "original_file": "Relincho insta.jpg", "bannedIn1v1": false},
+{"filename": "0044", "name": "Rinocornio", "type": "magic", "quantity": 1, "original_file": "Rinocornio UM.jpg", "bannedIn1v1": false},
+{"filename": "0045", "name": "Ritual Sadico", "type": "downgrade", "quantity": 1, "original_file": "Ritual Sadico D.jpg", "bannedIn1v1": false},
+{"filename": "0046", "name": "Robo descarado", "type": "magic", "quantity": 1, "original_file": "Robo descarado M.jpg", "bannedIn1v1": false},
+{"filename": "0047", "name": "Super relincho", "type": "instant", "quantity": 2, "original_file": "Super relincho Insta.jpg", "bannedIn1v1": false},
+{"filename": "0048", "name": "Tibucornio", "type": "magic", "quantity": 1, "original_file": "Tibucornio UM.jpg", "bannedIn1v1": false},
+{"filename": "0049", "name": "Tornado brillante", "type": "magic", "quantity": 1, "original_file": "Tornado brillante M.jpg", "bannedIn1v1": false},
+{"filename": "0050", "name": "Trato injusto", "type": "magic", "quantity": 1, "original_file": "Trato injusto M.jpg", "bannedIn1v1": false},
+{"filename": "0051", "name": "Unicornio Acuchillador", "type": "magic", "quantity": 1, "original_file": "Unicornio Acuchillador UM.jpg", "bannedIn1v1": false},
+{"filename": "0052", "name": "Unicornio Basico 1", "type": "basic", "quantity": 3, "original_file": "Unicornio Basico 1.jpg", "bannedIn1v1": false},
+{"filename": "0053", "name": "Unicornio Basico 2", "type": "basic", "quantity": 3, "original_file": "Unicornio Basico 2.jpg", "bannedIn1v1": false},
+{"filename": "0054", "name": "Unicornio Basico 3", "type": "basic", "quantity": 3, "original_file": "Unicornio Basico 3.jpg", "bannedIn1v1": false},
+{"filename": "0055", "name": "Unicornio Basico 4", "type": "basic", "quantity": 3, "original_file": "Unicornio Basico 4.jpg", "bannedIn1v1": false},
+{"filename": "0056", "name": "Unicornio Basico 5", "type": "basic", "quantity": 3, "original_file": "Unicornio Basico 5.jpg", "bannedIn1v1": false},
+{"filename": "0057", "name": "Unicornio Basico 6", "type": "basic", "quantity": 3, "original_file": "Unicornio Basico 6.jpg", "bannedIn1v1": false},
+{"filename": "0058", "name": "Unicornio Basico 7", "type": "basic", "quantity": 3, "original_file": "Unicornio Basico 7.jpg", "bannedIn1v1": false},
+{"filename": "0059", "name": "Unicornio Basico Narval", "type": "basic", "quantity": 1, "original_file": "Unicornio Basico Narval.jpg", "bannedIn1v1": false},
+{"filename": "0060", "name": "Unicornio Feniz", "type": "magic", "quantity": 1, "original_file": "Unicornio Feniz UM.jpg", "bannedIn1v1": false},
+{"filename": "0061", "name": "Unicornio Mariposa", "type": "magic", "quantity": 1, "original_file": "Unicornio Mariposa UM.jpg", "bannedIn1v1": false},
+{"filename": "0062", "name": "Unicornio altamente destructivo", "type": "magic", "quantity": 1, "original_file": "Unicornio altamente destructivo UM.jpg", "bannedIn1v1": false},
+{"filename": "0063", "name": "Unicornio arcoiris", "type": "magic", "quantity": 1, "original_file": "Unicornio arcoiris UM.jpg", "bannedIn1v1": false},
+{"filename": "0064", "name": "Unicornio codicioso", "type": "magic", "quantity": 1, "original_file": "Unicornio codicioso UM.jpg", "bannedIn1v1": false},
+{"filename": "0065", "name": "Unicornio de texas", "type": "magic", "quantity": 1, "original_file": "Unicornio de texas UM.jpg", "bannedIn1v1": false},
+{"filename": "0066", "name": "Unicornio descomunal", "type": "magic", "quantity": 1, "original_file": "Unicornio descomunal UM.jpg", "bannedIn1v1": false},
+{"filename": "0067", "name": "Unicornio majestuoso", "type": "magic", "quantity": 1, "original_file": "Unicornio majestuoso UM.jpg", "bannedIn1v1": false},
+{"filename": "0068", "name": "Unicornio molesto", "type": "magic", "quantity": 1, "original_file": "Unicornio molesto UM.jpg", "bannedIn1v1": false},
+{"filename": "0069", "name": "Unicornio sirena", "type": "magic", "quantity": 1, "original_file": "Unicornio sirena UM.jpg", "bannedIn1v1": false},
+{"filename": "0070", "name": "Velocicornio", "type": "magic", "quantity": 1, "original_file": "Velocicornio UM.jpg", "bannedIn1v1": false},
+{"filename": "0071", "name": "Veneno", "type": "magic", "quantity": 1, "original_file": "Veneno M.jpg", "bannedIn1v1": false},
+{"filename": "0072", "name": "Vortice", "type": "magic", "quantity": 1, "original_file": "Vortice M.jpg", "bannedIn1v1": false},
+{"filename": "0073", "name": "reina del baile", "type": "magic", "quantity": 1, "original_file": "reina del baile UM.jpg", "bannedIn1v1": false}
+];
+// ========== UTILIDADES ==========
+const shuffleArray = (array) => {
+const newArray = [...array];
+for (let i = newArray.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+[newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+}
+return newArray;
+};
+// ========== COMPONENTES ==========
+function CardZoom({ card, onClose }) {
+if (!card) return null;
+return (
+<div className="card-zoom-overlay" onClick={onClose}>
+<img
+src={`Imagenes1/${card.filename}.jpg`}
+alt={card.name}
+className="card-zoom-image"
+onError={(e) => {
+e.target.src = `imagenes2/${card.filename}.jpg`;
+}}
+/>
+</div>
+);
+}
+function Card({ card, size = 'normal', onClick, draggable = false, onDragStart, className = '' }) {
+const cardColor = {
+baby: '#9B59B6',
+basic: '#5B4E9D',
+magical: '#3498DB',
+magic: '#27AE60',
+upgrade: '#E67E22',
+downgrade: '#F39C12',
+instant: '#E74C3C'
+}[card.type] || '#95A5A6';
+const handleDragStart = (e) => {
+if (draggable && onDragStart) {
+e.dataTransfer.effectAllowed = 'move';
+e.dataTransfer.setData('cardId', card.id);
+onDragStart(card);
+}
+};
+const cardWidth = size === 'mini' ? '60px' : (size === 'small' ? '100px' : '140px');
+const cardHeight = size === 'mini' ? '85px' : (size === 'small' ? '140px' : '196px');
+return (
+<div
+className={`${draggable ? 'card-draggable' : ''} ${className}`}
+onClick={onClick}
+draggable={draggable}
+onDragStart={handleDragStart}
+style={{
+width: cardWidth,
+height: cardHeight,
+borderRadius: size === 'mini' ? '6px' : '10px',
+overflow: 'hidden',
+cursor: draggable ? 'grab' : (onClick ? 'pointer' : 'default'),
+transition: 'transform 0.2s',
+boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+border: `${size === 'mini' ? '2px' : '3px'} solid ${cardColor}`,
+flexShrink: 0
+}}
+>
+<img
+src={`Imagenes1/${card.filename}.jpg`}
+alt={card.name}
+style={{
+width: '100%',
+height: '100%',
+objectFit: 'cover',
+pointerEvents: 'none'
+}}
+onError={(e) => {
+e.target.src = `imagenes2/${card.filename}.jpg`;
+}}
+/>
+</div>
+);
+}
+function CardBack({ size = 'small', draggable = false, onDragStart, onClick, className = '' }) {
+const cardWidth = size === 'mini' ? '60px' : (size === 'small' ? '100px' : '140px');
+const cardHeight = size === 'mini' ? '85px' : (size === 'small' ? '140px' : '196px');
+const handleDragStart = (e) => {
+if (draggable && onDragStart) {
+e.dataTransfer.effectAllowed = 'move';
+onDragStart();
+}
+};
+return (
+<div
+className={`${draggable ? 'card-draggable' : ''} ${className}`}
+draggable={draggable}
+onDragStart={handleDragStart}
+onClick={onClick}
+style={{
+width: cardWidth,
+height: cardHeight,
+borderRadius: size === 'mini' ? '6px' : '10px',
+overflow: 'hidden',
+cursor: draggable ? 'grab' : (onClick ? 'pointer' : 'default'),
+transition: 'transform 0.2s',
+boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+border: `${size === 'mini' ? '2px' : '3px'} solid #4a5568`,
+flexShrink: 0
+}}
+>
+<img
+src="Dorso_carta.jpg"
+alt="Carta oculta"
+style={{
+width: '100%',
+height: '100%',
+objectFit: 'cover',
+pointerEvents: 'none'
+}}
+/>
+</div>
+);
+}
+function BabySelectionModal({ babies, playerName, onSelectBaby }) {
+const [selectedBaby, setSelectedBaby] = useState(null);
+return (
+<div className="baby-selection-overlay">
+<div className="baby-selection-content">
+<h1 style={{
+textAlign: 'center',
+color: '#667eea',
+fontSize: '2rem',
+marginBottom: '10px'
+}}>
+🦄 Elige tu Bebé Unicornio
+</h1>
+<p style={{
+textAlign: 'center',
+color: '#666',
+fontSize: '1rem',
+marginBottom: '20px'
+}}>
+{playerName}, selecciona tu bebé inicial
+</p>
+<div className="baby-grid">
+{babies.map(baby => (
+<div
+key={baby.filename}
+className={`baby-card ${selectedBaby?.filename === baby.filename ? 'baby-card-selected' : ''}`}
+onClick={() => setSelectedBaby(baby)}
+>
+<Card card={baby} size="small" />
+</div>
+))}
+</div>
+<button
+onClick={() => selectedBaby && onSelectBaby(selectedBaby)}
+disabled={!selectedBaby}
+style={{
+width: '100%',
+marginTop: '20px',
+padding: '15px',
+fontSize: '1.2rem',
+fontWeight: 'bold',
+background: selectedBaby ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ccc',
+color: 'white',
+border: 'none',
+borderRadius: '10px',
+cursor: selectedBaby ? 'pointer' : 'not-allowed',
+transition: 'all 0.3s'
+}}
+>
+{selectedBaby ? '✓ Confirmar' : '← Selecciona un bebé'}
+</button>
+</div>
+</div>
+);
+}
+function CardListModal({ title, cards, onClose, onSelectCard, allowDrag = false }) {
+const [zoomedCard, setZoomedCard] = useState(null);
+const handleSelectCard = (card) => {
+if (onSelectCard) {
+onSelectCard(card);
+setZoomedCard(null);
+onClose();
+}
+};
+return (
+<div className="modal-overlay" onClick={onClose}>
+<div className="modal-content" onClick={(e) => e.stopPropagation()}>
+<div className="modal-header">
+<h2 style={{ color: '#667eea' }}>{title} ({cards.length})</h2>
+<button
+onClick={onClose}
+style={{
+padding: '10px 20px',
+background: '#e74c3c',
+color: 'white',
+border: 'none',
+borderRadius: '8px',
+cursor: 'pointer',
+fontSize: '1rem',
+fontWeight: 'bold'
+}}
+>
+✕ Cerrar
+</button>
+</div>
+{cards.length === 0 ? (
+<p style={{ textAlign: 'center', color: '#999', padding: '40px', fontSize: '1.2rem' }}>
+No hay cartas
+</p>
+) : (
+<div style={{
+display: 'grid',
+gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+gap: '15px'
+}}>
+{[...cards].map((card, index) => (
+<div key={`card-${card.id}-${index}`} style={{ textAlign: 'center' }}>
+<Card
+card={card}
+draggable={allowDrag}
+onDragStart={() => {
+if (onSelectCard) {
+onSelectCard(card);
+onClose();
+}
+}}
+onClick={() => setZoomedCard(card)}
+/>
+<div style={{
+marginTop: '5px',
+fontSize: '0.75rem',
+color: '#666'
+}}>
+{card.name}
+</div>
+</div>
+))}
+</div>
+)}
+</div>
+{zoomedCard && (
+<div
+style={{
+position: 'fixed',
+top: 0,
+left: 0,
+right: 0,
+bottom: 0,
+background: 'rgba(0, 0, 0, 0.9)',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+zIndex: 10001,
+padding: '20px'
+}}
+onClick={() => setZoomedCard(null)}
+>
+<div
+style={{
+display: 'flex',
+flexDirection: 'column',
+alignItems: 'center',
+gap: '20px'
+}}
+onClick={(e) => e.stopPropagation()}
+>
+<img
+src={`Imagenes1/${zoomedCard.filename}.jpg`}
+alt={zoomedCard.name}
+style={{
+maxWidth: '90vw',
+maxHeight: '70vh',
+borderRadius: '15px',
+boxShadow: '0 10px 50px rgba(0, 0, 0, 0.5)'
+}}
+onError={(e) => {
+e.target.src = `imagenes2/${zoomedCard.filename}.jpg`;
+}}
+/>
+<button
+onClick={() => handleSelectCard(zoomedCard)}
+style={{
+padding: '15px 40px',
+fontSize: '1.3rem',
+fontWeight: 'bold',
+background: 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
+color: 'white',
+border: 'none',
+borderRadius: '12px',
+cursor: 'pointer',
+boxShadow: '0 4px 15px rgba(39, 174, 96, 0.4)',
+transition: 'transform 0.2s'
+}}
+onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+>
+✓ Seleccionar
+</button>
+<button
+onClick={() => setZoomedCard(null)}
+style={{
+padding: '10px 30px',
+fontSize: '1rem',
+background: 'rgba(255, 255, 255, 0.2)',
+color: 'white',
+border: '2px solid white',
+borderRadius: '8px',
+cursor: 'pointer'
+}}
+>
+Cancelar
+</button>
+</div>
+</div>
+)}
+</div>
+);
+}
+// ========== COMPONENTE PRINCIPAL ==========
+function UnstableUnicornsGame() {
+const [gameState, setGameState] = useState('menu');
+const [roomCode, setRoomCode] = useState('');
+const [playerName, setPlayerName] = useState('');
+const [gameMode, setGameMode] = useState('ffa');
+const [numPlayers, setNumPlayers] = useState(4);
+const [currentRoom, setCurrentRoom] = useState(null);
+const [players, setPlayers] = useState([]);
+const [isHost, setIsHost] = useState(false);
+useEffect(() => {
+const interval = setInterval(() => {
+const sparkle = document.createElement('div');
+sparkle.className = 'sparkle';
+sparkle.style.left = Math.random() * window.innerWidth + 'px';
+sparkle.style.top = Math.random() * window.innerHeight + 'px';
+document.body.appendChild(sparkle);
+setTimeout(() => sparkle.remove(), 1000);
+}, 300);
+return () => clearInterval(interval);
+}, []);
+const generateRoomCode = () => {
+return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
+const createRoom = async () => {
+if (!playerName.trim()) {
+alert('Por favor ingresa tu nombre');
+return;
+}
+const code = generateRoomCode();
+const room = {
+code,
+host: playerName,
+gameMode,
+numPlayers,
+players: [{ name: playerName, id: Date.now(), isHost: true }],
+state: 'waiting',
+createdAt: Date.now()
+};
+localStorage.setItem(`room:${code}`, JSON.stringify(room));
+setRoomCode(code);
+setCurrentRoom(room);
+setIsHost(true);
+setPlayers(room.players);
+setGameState('lobby');
+};
+const joinRoom = async () => {
+if (!playerName.trim() || !roomCode.trim()) {
+alert('Por favor ingresa tu nombre y el código de sala');
+return;
+}
+const result = localStorage.getItem(`room:${roomCode.toUpperCase()}`);
+if (!result) {
+alert('Sala no encontrada');
+return;
+}
+const room = JSON.parse(result);
+if (room.players.length >= room.numPlayers) {
+alert('La sala está llena');
+return;
+}
+room.players.push({ name: playerName, id: Date.now(), isHost: false });
+localStorage.setItem(`room:${roomCode.toUpperCase()}`, JSON.stringify(room));
+setCurrentRoom(room);
+setPlayers(room.players);
+setGameState('lobby');
+};
+const startGame = async () => {
+if (!isHost) return;
+const updatedRoom = { ...currentRoom, state: 'baby-selection' };
+localStorage.setItem(`room:${roomCode}`, JSON.stringify(updatedRoom));
+setCurrentRoom(updatedRoom);
+setGameState('baby-selection');
+};
+useEffect(() => {
+if (gameState === 'lobby' && currentRoom) {
+const interval = setInterval(() => {
+const result = localStorage.getItem(`room:${roomCode}`);
+if (result) {
+const room = JSON.parse(result);
+setPlayers(room.players);
+setCurrentRoom(room);
+if (room.state === 'baby-selection' && gameState === 'lobby') {
+setGameState('baby-selection');
+}
+if (room.state === 'playing' && gameState === 'lobby') {
+setGameState('playing');
+}
+}
+}, 1000);
+return () => clearInterval(interval);
+}
+}, [gameState, roomCode]);
+if (gameState === 'menu') {
+return (
+<div style={{
+height: '100vh',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+padding: '20px',
+overflow: 'auto'
+}}>
+<div style={{
+background: 'rgba(255, 255, 255, 0.95)',
+borderRadius: '20px',
+padding: '40px',
+maxWidth: '500px',
+width: '100%',
+boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+}}>
+<h1 className="rainbow-text" style={{
+fontSize: '2.5rem',
+textAlign: 'center',
+marginBottom: '15px'
+}}>
+UNSTABLE UNICORNS
+</h1>
+<div style={{ marginBottom: '20px' }}>
+<input
+type="text"
+value={playerName}
+onChange={(e) => setPlayerName(e.target.value)}
+placeholder="Tu nombre"
+style={{
+width: '100%',
+padding: '12px',
+fontSize: '1rem',
+borderRadius: '8px',
+border: '2px solid #ddd'
+}}
+/>
+</div>
+<div style={{
+display: 'grid',
+gridTemplateColumns: '1fr 1fr',
+gap: '10px',
+marginBottom: '20px'
+}}>
+<select
+value={gameMode}
+onChange={(e) => setGameMode(e.target.value)}
+style={{
+padding: '10px',
+borderRadius: '8px',
+border: '2px solid #ddd'
+}}
+>
+<option value="ffa">FFA</option>
+<option value="1v1">1v1</option>
+</select>
+<select
+value={numPlayers}
+onChange={(e) => setNumPlayers(Number(e.target.value))}
+disabled={gameMode === '1v1'}
+style={{
+padding: '10px',
+borderRadius: '8px',
+border: '2px solid #ddd'
+}}
+>
+{[2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n} jugadores</option>)}
+</select>
+</div>
+<div style={{ display: 'flex', gap: '10px' }}>
+<button
+onClick={createRoom}
+style={{
+flex: 1,
+padding: '15px',
+fontSize: '1.1rem',
+fontWeight: 'bold',
+background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+color: 'white',
+border: 'none',
+borderRadius: '10px',
+cursor: 'pointer'
+}}
+>
+Crear Sala
+</button>
+<button
+onClick={() => setGameState('join')}
+style={{
+flex: 1,
+padding: '15px',
+fontSize: '1.1rem',
+fontWeight: 'bold',
+background: 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
+color: 'white',
+border: 'none',
+borderRadius: '10px',
+cursor: 'pointer'
+}}
+>
+Unirse
+</button>
+</div>
+</div>
+</div>
+);
+}
+if (gameState === 'join') {
+return (
+<div style={{
+height: '100vh',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+padding: '20px'
+}}>
+<div style={{
+background: 'rgba(255, 255, 255, 0.95)',
+borderRadius: '20px',
+padding: '40px',
+maxWidth: '500px',
+width: '100%',
+boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+}}>
+<h1 style={{
+fontSize: '2rem',
+textAlign: 'center',
+marginBottom: '20px',
+color: '#667eea'
+}}>
+Unirse a Sala
+</h1>
+<div style={{ marginBottom: '20px' }}>
+<input
+type="text"
+value={roomCode}
+onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+placeholder="CÓDIGO"
+maxLength="6"
+style={{
+width: '100%',
+padding: '15px',
+fontSize: '1.5rem',
+borderRadius: '10px',
+border: '2px solid #ddd',
+textAlign: 'center',
+letterSpacing: '5px',
+fontFamily: 'monospace',
+fontWeight: 'bold'
+}}
+/>
+</div>
+<div style={{ display: 'flex', gap: '10px' }}>
+<button
+onClick={() => setGameState('menu')}
+style={{
+flex: 1,
+padding: '15px',
+fontSize: '1.1rem',
+fontWeight: 'bold',
+background: '#95a5a6',
+color: 'white',
+border: 'none',
+borderRadius: '10px',
+cursor: 'pointer'
+}}
+>
+Volver
+</button>
+<button
+onClick={joinRoom}
+style={{
+flex: 1,
+padding: '15px',
+fontSize: '1.1rem',
+fontWeight: 'bold',
+background: 'linear-gradient(135deg, #27ae60 0%, #229954 100%)',
+color: 'white',
+border: 'none',
+borderRadius: '10px',
+cursor: 'pointer'
+}}
+>
+Unirse
+</button>
+</div>
+</div>
+</div>
+);
+}
+if (gameState === 'lobby') {
+return (
+<div style={{
+height: '100vh',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+padding: '20px',
+overflow: 'auto'
+}}>
+<div style={{
+background: 'rgba(255, 255, 255, 0.95)',
+borderRadius: '20px',
+padding: '30px',
+maxWidth: '700px',
+width: '100%',
+boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+}}>
+<div style={{
+background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+borderRadius: '12px',
+padding: '20px',
+marginBottom: '20px',
+textAlign: 'center'
+}}>
+<div style={{
+fontSize: '2rem',
+fontWeight: 'bold',
+color: 'white',
+letterSpacing: '5px',
+fontFamily: 'monospace'
+}}>
+{roomCode}
+</div>
+</div>
+<div style={{
+background: '#f8f9fa',
+padding: '15px',
+borderRadius: '12px',
+marginBottom: '20px'
+}}>
+<h3 style={{ fontSize: '1.1rem', marginBottom: '10px', color: '#333' }}>
+Jugadores ({players.length}/{currentRoom.numPlayers}):
+</h3>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+{players.map((player, index) => (
+<div
+key={player.id}
+style={{
+display: 'flex',
+alignItems: 'center',
+gap: '10px',
+padding: '10px',
+background: 'white',
+borderRadius: '8px'
+}}
+>
+<div style={{
+width: '35px',
+height: '35px',
+borderRadius: '50%',
+background: `hsl(${index * 60}, 70%, 60%)`,
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+fontSize: '1rem',
+fontWeight: 'bold',
+color: 'white'
+}}>
+{player.name[0].toUpperCase()}
+</div>
+<div style={{ flex: 1 }}>
+<strong>{player.name}</strong>
+{player.isHost && <span style={{ fontSize: '0.8rem', color: '#667eea' }}> 👑</span>}
+</div>
+</div>
+))}
+</div>
+</div>
+{isHost && (
+<button
+onClick={startGame}
+disabled={players.length < 2}
+style={{
+width: '100%',
+padding: '15px',
+fontSize: '1.2rem',
+fontWeight: 'bold',
+background: players.length >= 2 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#ccc',
+color: 'white',
+border: 'none',
+borderRadius: '10px',
+cursor: players.length >= 2 ? 'pointer' : 'not-allowed'
+}}
+>
+Iniciar Partida
+</button>
+)}
+{!isHost && (
+<div style={{
+textAlign: 'center',
+padding: '15px',
+background: '#e3f2fd',
+borderRadius: '10px',
+color: '#1976d2'
+}}>
+Esperando al host...
+</div>
+)}
+</div>
+</div>
+);
+}
+if (gameState === 'baby-selection') {
+return <BabySelection
+roomCode={roomCode}
+playerName={playerName}
+players={players}
+isHost={isHost}
+onComplete={() => setGameState('playing')}
+/>;
+}
+if (gameState === 'playing') {
+return <GameBoard
+roomCode={roomCode}
+playerName={playerName}
+gameMode={currentRoom.gameMode}
+players={players}
+isHost={isHost}
+numPlayers={currentRoom.numPlayers}
+/>;
+}
+return null;
+}
+function BabySelection({ roomCode, playerName, players, isHost, onComplete }) {
+const [babySelections, setBabySelections] = useState({});
+const [mySelection, setMySelection] = useState(null);
+const [showModal, setShowModal] = useState(true);
+const babies = CARD_CATALOG.filter(c => c.type === 'baby');
+useEffect(() => {
+const interval = setInterval(() => {
+const result = localStorage.getItem(`baby-selections:${roomCode}`);
+if (result) {
+const selections = JSON.parse(result);
+setBabySelections(selections);
+if (Object.keys(selections).length === players.length) {
+if (isHost) {
+setTimeout(() => {
+const room = JSON.parse(localStorage.getItem(`room:${roomCode}`));
+room.state = 'playing';
+localStorage.setItem(`room:${roomCode}`, JSON.stringify(room));
+onComplete();
+}, 2000);
+} else {
+setTimeout(() => onComplete(), 2000);
+}
+}
+}
+}, 500);
+return () => clearInterval(interval);
+}, [players, isHost]);
+const handleSelectBaby = (baby) => {
+setMySelection(baby);
+setShowModal(false);
+const result = localStorage.getItem(`baby-selections:${roomCode}`) || '{}';
+const selections = JSON.parse(result);
+selections[playerName] = baby;
+localStorage.setItem(`baby-selections:${roomCode}`, JSON.stringify(selections));
+setBabySelections(selections);
+};
+const allSelected = Object.keys(babySelections).length === players.length;
+return (
+<div style={{
+height: '100vh',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+padding: '20px',
+overflow: 'auto'
+}}>
+{showModal && <BabySelectionModal
+babies={babies}
+playerName={playerName}
+onSelectBaby={handleSelectBaby}
+/>}
+<div style={{
+background: 'rgba(255, 255, 255, 0.95)',
+borderRadius: '20px',
+padding: '30px',
+maxWidth: '800px',
+width: '100%',
+boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+}}>
+<h2 style={{
+textAlign: 'center',
+color: '#667eea',
+fontSize: '1.8rem',
+marginBottom: '20px'
+}}>
+Selecciones de Bebés
+</h2>
+<div style={{
+display: 'grid',
+gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+gap: '15px',
+marginBottom: '20px'
+}}>
+{players.map((player, index) => {
+const selection = babySelections[player.name];
+return (
+<div
+key={player.name}
+style={{
+background: selection ? '#e8f5e9' : '#f8f9fa',
+padding: '15px',
+borderRadius: '10px',
+textAlign: 'center'
+}}
+>
+<strong style={{ fontSize: '0.9rem' }}>{player.name}</strong>
+{selection ? (
+<div style={{ marginTop: '10px' }}>
+<Card card={selection} size="mini" />
+</div>
+) : (
+<div style={{ color: '#999', marginTop: '10px' }}>⏳</div>
+)}
+</div>
+);
+})}
+</div>
+{allSelected && (
+<div style={{
+textAlign: 'center',
+padding: '15px',
+background: '#d4edda',
+borderRadius: '10px',
+color: '#155724',
+fontWeight: 'bold'
+}}>
+✓ Iniciando partida...
+</div>
+)}
+</div>
+</div>
+);
+}
+function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers }) {
+const [gameData, setGameData] = useState(null);
+const [myHand, setMyHand] = useState([]);
+const [zoomedCard, setZoomedCard] = useState(null);
+const [message, setMessage] = useState('');
+const [draggedCard, setDraggedCard] = useState(null);
+const [dragSource, setDragSource] = useState(null);
+const [showDeckModal, setShowDeckModal] = useState(false);
+const [showDiscardModal, setShowDiscardModal] = useState(false);
+const [showGuarderiaModal, setShowGuarderiaModal] = useState(false); // NUEVO
+// NUEVOS ESTADOS PARA LAS FUNCIONES SOLICITADAS
+const [selectedCardAction, setSelectedCardAction] = useState(null);
+const [targetPlayer, setTargetPlayer] = useState(null);
+const [cardsToChooseFrom, setCardsToChooseFrom] = useState([]);
+const [expandedPlayerHand, setExpandedPlayerHand] = useState(null);
+
+useEffect(() => {
+if (isHost) {
+initializeGame();
+} else {
+syncGame();
+}
+}, []);
+const initializeGame = () => {
+const selectionsData = localStorage.getItem(`baby-selections:${roomCode}`);
+const babySelections = selectionsData ? JSON.parse(selectionsData) : {};
+let deck = [];
+let guarderia = []; // NUEVO: Pila de guardería
+// Separar bebés del resto del mazo
+CARD_CATALOG.forEach(card => {
+if (gameMode === '1v1' && card.bannedIn1v1) return;
+if (card.type === 'baby') {
+// Los bebés van a la guardería (excepto los seleccionados)
+for (let i = 0; i < card.quantity; i++) {
+const cardWithId = {...card, id: `${card.filename}-${i}-${Date.now()}`};
+const isSelected = Object.values(babySelections).some(
+selected => selected.filename === card.filename
+);
+if (!isSelected) {
+guarderia.push(cardWithId);
+}
+}
+} else {
+// El resto va al mazo
+for (let i = 0; i < card.quantity; i++) {
+deck.push({...card, id: `${card.filename}-${i}-${Date.now()}`});
+}
+}
+});
+deck = shuffleArray(deck);
+guarderia = shuffleArray(guarderia); // Barajar guardería
+const playerHands = {};
+const playerStables = {};
+players.forEach(player => {
+playerHands[player.name] = deck.splice(0, 5);
+const selectedBaby = babySelections[player.name];
+playerStables[player.name] = {
+unicorns: selectedBaby ? [{...selectedBaby, id: `baby-${player.name}`}] : [],
+upgrades: [],
+downgrades: []
+};
+});
+if (gameMode === '1v1') {
+players.forEach(player => {
+const neighCard = deck.find(c => c.type === 'instant');
+if (neighCard) {
+const index = deck.indexOf(neighCard);
+deck.splice(index, 1);
+playerHands[player.name].push(neighCard);
+}
+});
+}
+const game = {
+deck,
+discard: [],
+guarderia, // NUEVO: Guardar guardería en el estado
+playerHands,
+playerStables,
+currentTurnIndex: 0,
+currentPlayer: players[0].name,
+unicornsToWin: numPlayers >= 6 ? 6 : 7,
+lastUpdate: Date.now()
+};
+localStorage.setItem(`game:${roomCode}`, JSON.stringify(game));
+setGameData(game);
+setMyHand(game.playerHands[playerName]);
+showMessage(`Turno de ${game.currentPlayer}`);
+};
+const syncGame = () => {
+const result = localStorage.getItem(`game:${roomCode}`);
+if (result) {
+const game = JSON.parse(result);
+setGameData(game);
+setMyHand(game.playerHands[playerName] || []);
+}
+};
+useEffect(() => {
+const interval = setInterval(syncGame, 1000);
+return () => clearInterval(interval);
+}, []);
+const showMessage = (msg) => {
+setMessage(msg);
+setTimeout(() => setMessage(''), 3000);
+};
+const updateGame = (newGameData) => {
+newGameData.lastUpdate = Date.now();
+localStorage.setItem(`game:${roomCode}`, JSON.stringify(newGameData));
+setGameData(newGameData);
+setMyHand(newGameData.playerHands[playerName]);
+};
+const handleDragStart = (card, source) => {
+setDraggedCard(card);
+setDragSource(source);
+};
+const handleDragOver = (e) => {
+e.preventDefault();
+e.dataTransfer.dropEffect = 'move';
+};
+const handleDrawCard = () => {
+const newGameData = {...gameData};
+if (newGameData.deck.length === 0) {
+showMessage('Mazo vacío');
+return;
+}
+const drawnCard = newGameData.deck.shift();
+newGameData.playerHands[playerName].push(drawnCard);
+updateGame(newGameData);
+showMessage('Carta robada');
+};
+const handleEndTurn = () => {
+if (gameData.currentPlayer !== playerName) {
+showMessage('No es tu turno');
+return;
+}
+const newGameData = {...gameData};
+const hand = newGameData.playerHands[playerName];
+if (hand.length > 7) {
+showMessage(`Descarta ${hand.length - 7} carta(s) primero`);
+return;
+}
+newGameData.currentTurnIndex = (newGameData.currentTurnIndex + 1) % players.length;
+newGameData.currentPlayer = players[newGameData.currentTurnIndex].name;
+updateGame(newGameData);
+showMessage(`Turno de ${newGameData.currentPlayer}`);
+};
+const handleDropOnDiscard = (e) => {
+e.preventDefault();
+if (!draggedCard || !dragSource) return;
+const newGameData = {...gameData};
+let removed = null;
+if (dragSource.type === 'hand') {
+const handIndex = newGameData.playerHands[playerName].findIndex(c => c.id === draggedCard.id);
+if (handIndex !== -1) {
+removed = newGameData.playerHands[playerName].splice(handIndex, 1)[0];
+}
+} else if (dragSource.type === 'stable') {
+const stable = newGameData.playerStables[dragSource.player];
+const section = dragSource.section;
+const index = stable[section].findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = stable[section].splice(index, 1)[0];
+}
+}
+if (removed) {
+newGameData.discard.push(removed);
+updateGame(newGameData);
+showMessage(`${removed.name} descartada`);
+}
+setDraggedCard(null);
+setDragSource(null);
+};
+// NUEVO: Mover cartas a la guardería
+const handleDropOnGuarderia = (e) => {
+e.preventDefault();
+if (!draggedCard || !dragSource) return;
+// Solo se pueden mover bebés a la guardería
+if (draggedCard.type !== 'baby') {
+showMessage('Solo los bebés pueden ir a la guardería');
+setDraggedCard(null);
+setDragSource(null);
+return;
+}
+const newGameData = {...gameData};
+let removed = null;
+if (dragSource.type === 'stable') {
+const stable = newGameData.playerStables[dragSource.player];
+const index = stable.unicorns.findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = stable.unicorns.splice(index, 1)[0];
+}
+}
+if (removed) {
+newGameData.guarderia.push(removed);
+updateGame(newGameData);
+showMessage(`${removed.name} enviado a la guardería`);
+}
+setDraggedCard(null);
+setDragSource(null);
+};
+const handleDropOnStable = (e, targetPlayer) => {
+e.preventDefault();
+if (!draggedCard || !dragSource) return;
+const newGameData = {...gameData};
+let removed = null;
+if (dragSource.type === 'hand') {
+const handIndex = newGameData.playerHands[playerName].findIndex(c => c.id === draggedCard.id);
+if (handIndex !== -1) {
+removed = newGameData.playerHands[playerName].splice(handIndex, 1)[0];
+}
+} else if (dragSource.type === 'stable') {
+const stable = newGameData.playerStables[dragSource.player];
+const section = dragSource.section;
+const index = stable[section].findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = stable[section].splice(index, 1)[0];
+}
+} else if (dragSource.type === 'discard') {
+const index = newGameData.discard.findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = newGameData.discard.splice(index, 1)[0];
+}
+} else if (dragSource.type === 'deck') {
+const index = newGameData.deck.findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = newGameData.deck.splice(index, 1)[0];
+}
+} else if (dragSource.type === 'guarderia') { // NUEVO: Desde guardería
+const index = newGameData.guarderia.findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = newGameData.guarderia.splice(index, 1)[0];
+}
+}
+if (removed) {
+const targetStable = newGameData.playerStables[targetPlayer];
+if (removed.type === 'baby' || removed.type === 'basic' || removed.type === 'magic') {
+targetStable.unicorns.push(removed);
+const unicornCount = targetStable.unicorns.length;
+if (unicornCount >= newGameData.unicornsToWin) {
+showMessage(`🎉 ${targetPlayer} GANÓ! 🎉`);
+}
+} else if (removed.type === 'upgrade') {
+targetStable.upgrades.push(removed);
+} else if (removed.type === 'downgrade') {
+targetStable.downgrades.push(removed);
+} else {
+newGameData.discard.push(removed);
+}
+updateGame(newGameData);
+showMessage(`${removed.name} jugada en establo de ${targetPlayer}`);
+}
+setDraggedCard(null);
+setDragSource(null);
+};
+const handleDropOnHand = (e) => {
+e.preventDefault();
+if (!draggedCard || !dragSource) return;
+const newGameData = {...gameData};
+let removed = null;
+if (dragSource.type === 'stable') {
+const stable = newGameData.playerStables[dragSource.player];
+const section = dragSource.section;
+const index = stable[section].findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = stable[section].splice(index, 1)[0];
+}
+} else if (dragSource.type === 'discard') {
+const index = newGameData.discard.findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = newGameData.discard.splice(index, 1)[0];
+}
+} else if (dragSource.type === 'deck') {
+const index = newGameData.deck.findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = newGameData.deck.splice(index, 1)[0];
+}
+} else if (dragSource.type === 'guarderia') { // NUEVO: Desde guardería a mano
+const index = newGameData.guarderia.findIndex(c => c.id === draggedCard.id);
+if (index !== -1) {
+removed = newGameData.guarderia.splice(index, 1)[0];
+}
+} else if (dragSource.type === 'otherHand') {
+removed = newGameData.playerHands[dragSource.player].splice(dragSource.index, 1)[0];
+}
+if (removed) {
+newGameData.playerHands[playerName].push(removed);
+updateGame(newGameData);
+showMessage(`${removed.name} a tu mano`);
+}
+setDraggedCard(null);
+setDragSource(null);
+};
+const handleDropOnOtherHand = (e, targetPlayer) => {
+e.preventDefault();
+if (!draggedCard || !dragSource) return;
+const newGameData = {...gameData};
+let removed = null;
+if (dragSource.type === 'hand') {
+const handIndex = newGameData.playerHands[playerName].findIndex(c => c.id === draggedCard.id);
+if (handIndex !== -1) {
+removed = newGameData.playerHands[playerName].splice(handIndex, 1)[0];
+}
+}
+if (removed) {
+newGameData.playerHands[targetPlayer].push(removed);
+updateGame(newGameData);
+showMessage(`${removed.name} dada a ${targetPlayer}`);
+}
+setDraggedCard(null);
+setDragSource(null);
+};
+const handleShuffleDiscardIntoDeck = () => {
+if (gameData.discard.length === 0) {
+showMessage('No hay cartas para barajar');
+return;
+}
+const newGameData = {...gameData};
+newGameData.deck = [...newGameData.deck, ...newGameData.discard];
+newGameData.deck = shuffleArray(newGameData.deck);
+newGameData.discard = [];
+updateGame(newGameData);
+showMessage('Descartes mezclados en el mazo');
+};
+const handleShuffleDeck = () => {
+if (gameData.deck.length === 0) {
+showMessage('El mazo está vacío');
+return;
+}
+const newGameData = {...gameData};
+newGameData.deck = shuffleArray(newGameData.deck);
+updateGame(newGameData);
+showMessage('Mazo barajado');
+};
+const handleSelectFromDeck = (card) => {
+const newGameData = {...gameData};
+const cardIndex = newGameData.deck.findIndex(c => c.id === card.id);
+if (cardIndex !== -1) {
+const removed = newGameData.deck.splice(cardIndex, 1)[0];
+newGameData.playerHands[playerName].push(removed);
+updateGame(newGameData);
+showMessage(`${removed.name} agregada a tu mano`);
+}
+setShowDeckModal(false);
+};
+const handleSelectFromDiscard = (card) => {
+const newGameData = {...gameData};
+const cardIndex = newGameData.discard.findIndex(c => c.id === card.id);
+if (cardIndex !== -1) {
+const removed = newGameData.discard.splice(cardIndex, 1)[0];
+newGameData.playerHands[playerName].push(removed);
+updateGame(newGameData);
+showMessage(`${removed.name} recuperada de descartes`);
+}
+setShowDiscardModal(false);
+};
+// NUEVO: Seleccionar carta de la guardería
+const handleSelectFromGuarderia = (card) => {
+const newGameData = {...gameData};
+const cardIndex = newGameData.guarderia.findIndex(c => c.id === card.id);
+if (cardIndex !== -1) {
+const removed = newGameData.guarderia.splice(cardIndex, 1)[0];
+newGameData.playerHands[playerName].push(removed);
+updateGame(newGameData);
+showMessage(`${removed.name} recuperada de la guardería`);
+}
+setShowGuarderiaModal(false);
+};
+
+// NUEVAS FUNCIONES PARA LAS CARTAS SOLICITADAS
+const handleUseRoboDescarado = () => {
+setSelectedCardAction('robo_descarado');
+};
+
+const handleUseTratoInjusto = () => {
+setSelectedCardAction('trato_injusto');
+};
+
+// Verificar si un jugador tiene la cámara de la niñera
+const hasNannyCam = (playerName) => {
+  const playerStable = gameData.playerStables[playerName];
+  return playerStable && playerStable.downgrades.some(card => card.filename === '0022');
+};
+
+if (!gameData) {
+return (
+<div style={{
+height: '100vh',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+color: 'white',
+fontSize: '1.5rem'
+}}>
+Iniciando...
+</div>
+);
+}
+const isMyTurn = gameData.currentPlayer === playerName;
+const myStable = gameData.playerStables[playerName];
+return (
+<div style={{
+height: '100vh',
+display: 'flex',
+flexDirection: 'column',
+overflow: 'hidden'
+}}>
+{zoomedCard && <CardZoom card={zoomedCard} onClose={() => setZoomedCard(null)} />}
+
+{selectedCardAction && (
+  <div className="modal-overlay" onClick={() => setSelectedCardAction(null)}>
+    <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <h2 style={{ color: '#667eea', textAlign: 'center' }}>
+        {selectedCardAction === 'robo_descarado' ? 'Robo Descarado' : 'Trato Injusto'}
+      </h2>
+      <p style={{ textAlign: 'center', color: '#666', margin: '10px 0 20px' }}>
+        {selectedCardAction === 'robo_descarado' 
+          ? 'Elige un jugador para robar una carta de su mano' 
+          : 'Elige un jugador para intercambiar manos'}
+      </p>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
+        gap: '15px',
+        marginTop: '20px'
+      }}>
+        {players.filter(p => p.name !== playerName).map(player => (
+          <div 
+            key={player.name}
+            onClick={() => {
+              if (selectedCardAction === 'robo_descarado') {
+                setTargetPlayer(player.name);
+                setCardsToChooseFrom([...gameData.playerHands[player.name]]);
+                setSelectedCardAction(null);
+              } else if (selectedCardAction === 'trato_injusto') {
+                const newGameData = {...gameData};
+                
+                // Primero, encontramos y eliminamos la carta 0050 de la mano del jugador actual
+                const cardIndex = newGameData.playerHands[playerName].findIndex(
+                  c => c.filename === '0050'
+                );
+                let tratoInjustoCard = null;
+                if (cardIndex !== -1) {
+                  tratoInjustoCard = newGameData.playerHands[playerName].splice(cardIndex, 1)[0];
+                }
+                
+                // Intercambiamos las manos
+                const currentPlayerHand = [...newGameData.playerHands[playerName]];
+                const targetPlayerHand = [...newGameData.playerHands[player.name]];
+                
+                newGameData.playerHands[playerName] = targetPlayerHand;
+                newGameData.playerHands[player.name] = currentPlayerHand;
+                
+                // Agregamos la carta 0050 al descarte
+                if (tratoInjustoCard) {
+                  newGameData.discard.push(tratoInjustoCard);
+                }
+                
+                updateGame(newGameData);
+                setSelectedCardAction(null);
+                showMessage(`Manos intercambiadas con ${player.name}`);
+              }
+            }}
+            style={{
+              padding: '15px',
+              background: '#f8f9fa',
+              borderRadius: '10px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              border: '2px solid #e0e0e0',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <div style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              background: `hsl(${players.findIndex(p => p.name === player.name) * 60}, 70%, 60%)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 10px',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '1.2rem'
+            }}>
+              {player.name[0].toUpperCase()}
+            </div>
+            <strong>{player.name}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
+
+{targetPlayer && cardsToChooseFrom.length > 0 && (
+  <div className="modal-overlay" onClick={() => {
+    setTargetPlayer(null);
+    setCardsToChooseFrom([]);
+  }}>
+    <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <h2 style={{ color: '#667eea', textAlign: 'center' }}>Elige una carta de {targetPlayer}</h2>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
+        gap: '15px',
+        marginTop: '20px'
+      }}>
+        {cardsToChooseFrom.map((card, index) => (
+          <div 
+            key={`${card.id}-${index}`}
+            onClick={() => {
+              const newGameData = {...gameData};
+              // Mover la carta seleccionada a mi mano
+              const cardIndex = newGameData.playerHands[targetPlayer].findIndex(c => c.id === card.id);
+              if (cardIndex !== -1) {
+                const stolenCard = newGameData.playerHands[targetPlayer].splice(cardIndex, 1)[0];
+                newGameData.playerHands[playerName].push(stolenCard);
+                
+                // Descartar la carta de robo descarado
+                const roboIndex = newGameData.playerHands[playerName].findIndex(
+                  c => c.filename === '0046'
+                );
+                if (roboIndex !== -1) {
+                  const discardedCard = newGameData.playerHands[playerName].splice(roboIndex, 1)[0];
+                  newGameData.discard.push(discardedCard);
+                }
+                
+                updateGame(newGameData);
+                setTargetPlayer(null);
+                setCardsToChooseFrom([]);
+                showMessage(`Has robado ${stolenCard.name} a ${targetPlayer}`);
+              }
+            }}
+            style={{
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <Card card={card} size="small" />
+            <div style={{ textAlign: 'center', fontSize: '0.8rem', marginTop: '5px' }}>
+              {card.name}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
+
+{showDeckModal && (
+<CardListModal
+title="🎴 Mazo de Robo"
+cards={gameData.deck}
+onClose={() => setShowDeckModal(false)}
+onSelectCard={handleSelectFromDeck}
+allowDrag={true}
+/>
+)}
+{showDiscardModal && (
+<CardListModal
+title="🗑️ Pila de Descartes"
+cards={[...gameData.discard].reverse()}
+onClose={() => setShowDiscardModal(false)}
+onSelectCard={handleSelectFromDiscard}
+allowDrag={true}
+/>
+)}
+{/* NUEVO: Modal de Guardería */}
+{showGuarderiaModal && (
+<CardListModal
+title="🍼 Guardería de Bebés"
+cards={gameData.guarderia}
+onClose={() => setShowGuarderiaModal(false)}
+onSelectCard={handleSelectFromGuarderia}
+allowDrag={true}
+/>
+)}
+{message && (
+<div style={{
+position: 'fixed',
+top: '10px',
+left: '50%',
+transform: 'translateX(-50%)',
+background: 'rgba(0, 0, 0, 0.9)',
+color: 'white',
+padding: '12px 25px',
+borderRadius: '8px',
+fontSize: '1rem',
+zIndex: 9998,
+boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+}}>
+{message}
+</div>
+)}
+{/* Header compacto */}
+<div style={{
+background: 'rgba(255, 255, 255, 0.95)',
+padding: '10px 20px',
+display: 'flex',
+justifyContent: 'space-between',
+alignItems: 'center',
+flexShrink: 0
+}}>
+<div style={{ fontSize: '0.9rem' }}>
+<strong style={{ color: '#667eea' }}>Sala:</strong> {roomCode} |
+<strong style={{ color: isMyTurn ? '#27ae60' : '#666', marginLeft: '10px' }}>
+Turno: {gameData.currentPlayer}
+</strong>
+{isMyTurn && <span style={{ color: '#27ae60' }}> (TÚ)</span>}
+</div>
+<div style={{ fontSize: '0.9rem', color: '#666' }}>
+Ganar con: {gameData.unicornsToWin} 🦄
+</div>
+</div>
+{/* Área principal del juego */}
+<div style={{
+flex: 1,
+display: 'grid',
+gridTemplateRows: 'auto 1fr auto',
+gap: '10px',
+padding: '10px',
+overflow: 'hidden'
+}}>
+{/* Zona superior: Mazo, Descartes, Guardería y Establos */}
+<div style={{
+display: 'grid',
+gridTemplateColumns: '180px 180px 180px 1fr', // NUEVO: Columna extra para guardería
+gap: '10px',
+alignItems: 'start'
+}}>
+{/* Mazo */}
+<div style={{ textAlign: 'center' }}>
+<div
+onClick={handleDrawCard}
+style={{
+width: '140px',
+height: '196px',
+background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+borderRadius: '12px',
+display: 'flex',
+flexDirection: 'column',
+alignItems: 'center',
+justifyContent: 'center',
+cursor: 'pointer',
+boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+border: '3px solid white',
+margin: '0 auto',
+transition: 'transform 0.2s'
+}}
+onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-3px)'}
+onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+>
+<div style={{ fontSize: '3rem' }}>🎴</div>
+<div style={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }}>
+{gameData.deck.length}
+</div>
+</div>
+<button
+onClick={() => setShowDeckModal(true)}
+style={{
+marginTop: '8px',
+padding: '6px 12px',
+fontSize: '0.75rem',
+background: '#667eea',
+color: 'white',
+border: 'none',
+borderRadius: '6px',
+cursor: 'pointer',
+display: 'block',
+width: '100%'
+}}
+>
+Ver Mazo
+</button>
+<button
+onClick={handleShuffleDeck}
+disabled={gameData.deck.length === 0}
+style={{
+marginTop: '5px',
+padding: '6px 12px',
+fontSize: '0.75rem',
+background: gameData.deck.length > 0 ? '#9b59b6' : '#ccc',
+color: 'white',
+border: 'none',
+borderRadius: '6px',
+cursor: gameData.deck.length > 0 ? 'pointer' : 'not-allowed',
+display: 'block',
+width: '100%'
+}}
+>
+🔀 Barajar
+</button>
+</div>
+{/* Descartes */}
+<div style={{ textAlign: 'center' }}>
+<div
+className={`drop-zone ${draggedCard ? 'drop-zone-active' : ''}`}
+onDragOver={handleDragOver}
+onDrop={handleDropOnDiscard}
+onClick={() => setShowDiscardModal(true)}
+style={{
+width: '140px',
+height: '196px',
+background: gameData.discard.length > 0 ? 'white' : '#f5f5f5',
+borderRadius: '12px',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+cursor: 'pointer',
+boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+border: '3px solid #e0e0e0',
+overflow: 'hidden',
+position: 'relative',
+margin: '0 auto',
+transition: 'transform 0.2s'
+}}
+onMouseEnter={(e) => {
+if (!draggedCard) e.currentTarget.style.transform = 'translateY(-3px)';
+}}
+onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+>
+{gameData.discard.length > 0 ? (
+<img
+src={`Imagenes1/${gameData.discard[gameData.discard.length - 1].filename}.jpg`}
+alt="Última descartada"
+style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+onError={(e) => {
+e.target.src = `imagenes2/${gameData.discard[gameData.discard.length - 1].filename}.jpg`;
+}}
+/>
+) : (
+<>
+<div style={{ fontSize: '3rem' }}>🗑️</div>
+</>
+)}
+<div style={{
+position: 'absolute',
+bottom: '5px',
+right: '5px',
+background: 'rgba(0,0,0,0.7)',
+color: 'white',
+padding: '3px 8px',
+borderRadius: '5px',
+fontSize: '0.8rem',
+fontWeight: 'bold'
+}}>
+{gameData.discard.length}
+</div>
+</div>
+<button
+onClick={handleShuffleDiscardIntoDeck}
+disabled={gameData.discard.length === 0}
+style={{
+marginTop: '8px',
+padding: '6px 12px',
+fontSize: '0.75rem',
+background: gameData.discard.length > 0 ? '#e74c3c' : '#ccc',
+color: 'white',
+border: 'none',
+borderRadius: '6px',
+cursor: gameData.discard.length > 0 ? 'pointer' : 'not-allowed'
+}}
+>
+Barajar
+</button>
+</div>
+{/* NUEVO: Guardería */}
+<div style={{ textAlign: 'center' }}>
+<div
+className={`drop-zone ${draggedCard && draggedCard.type === 'baby' ? 'drop-zone-active' : ''}`}
+onDragOver={handleDragOver}
+onDrop={handleDropOnGuarderia}
+onClick={() => setShowGuarderiaModal(true)}
+style={{
+width: '140px',
+height: '196px',
+background: gameData.guarderia.length > 0 ? 'white' : '#f5f5f5',
+borderRadius: '12px',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+cursor: 'pointer',
+boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+border: '3px solid #9B59B6', // Color morado para bebés
+overflow: 'hidden',
+position: 'relative',
+margin: '0 auto',
+transition: 'transform 0.2s'
+}}
+onMouseEnter={(e) => {
+if (!draggedCard) e.currentTarget.style.transform = 'translateY(-3px)';
+}}
+onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+>
+{gameData.guarderia.length > 0 ? (
+<img
+src={`Imagenes1/${gameData.guarderia[gameData.guarderia.length - 1].filename}.jpg`}
+alt="Último bebé en guardería"
+style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+onError={(e) => {
+e.target.src = `imagenes2/${gameData.guarderia[gameData.guarderia.length - 1].filename}.jpg`;
+}}
+/>
+) : (
+<>
+<div style={{ fontSize: '3rem' }}>🍼</div>
+</>
+)}
+<div style={{
+position: 'absolute',
+bottom: '5px',
+right: '5px',
+background: 'rgba(155, 89, 182, 0.9)',
+color: 'white',
+padding: '3px 8px',
+borderRadius: '5px',
+fontSize: '0.8rem',
+fontWeight: 'bold'
+}}>
+{gameData.guarderia.length}
+</div>
+</div>
+<button
+onClick={() => setShowGuarderiaModal(true)}
+disabled={gameData.guarderia.length === 0}
+style={{
+marginTop: '8px',
+padding: '6px 12px',
+fontSize: '0.75rem',
+background: gameData.guarderia.length > 0 ? '#9B59B6' : '#ccc',
+color: 'white',
+border: 'none',
+borderRadius: '6px',
+cursor: gameData.guarderia.length > 0 ? 'pointer' : 'not-allowed'
+}}
+>
+Ver Guardería
+</button>
+</div>
+{/* Establos de otros jugadores */}
+<div style={{
+display: 'flex',
+gap: '10px',
+flexWrap: 'wrap',
+alignContent: 'start'
+}}>
+{players.filter(p => p.name !== playerName).map((player, index) => {
+const stable = gameData.playerStables[player.name];
+const unicornCount = stable?.unicorns.length || 0;
+const isWinner = unicornCount >= gameData.unicornsToWin;
+return (
+<div
+key={player.name}
+className={`drop-zone ${draggedCard ? 'drop-zone-active' : ''}`}
+onDragOver={handleDragOver}
+onDrop={(e) => handleDropOnStable(e, player.name)}
+style={{
+background: isWinner ? '#d4edda' : '#f8f9fa',
+padding: '10px',
+borderRadius: '8px',
+border: '2px solid #e0e0e0',
+minWidth: '200px',
+maxWidth: '250px'
+}}
+>
+<div style={{
+display: 'flex',
+alignItems: 'center',
+gap: '8px',
+marginBottom: '8px'
+}}>
+<div style={{
+width: '28px',
+height: '28px',
+borderRadius: '50%',
+background: `hsl(${(players.findIndex(p => p.name === player.name)) * 60}, 70%, 60%)`,
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+color: 'white',
+fontWeight: 'bold',
+fontSize: '0.9rem'
+}}>
+{player.name[0].toUpperCase()}
+</div>
+<div style={{ flex: 1 }}>
+<strong style={{ fontSize: '0.85rem' }}>{player.name}</strong>
+{isWinner && <span> 🏆</span>}
+</div>
+</div>
+<div style={{ fontSize: '0.85rem', marginBottom: '6px' }}>
+🦄 {unicornCount}/{gameData.unicornsToWin} | ✋ {gameData.playerHands[player.name]?.length || 0}
+</div>
+{stable && stable.unicorns.length > 0 && (
+<div style={{ marginBottom: '6px' }}>
+<div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '3px' }}>Unicornios:</div>
+<div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+{stable.unicorns.map((u, idx) => (
+<Card
+key={`${u.id}-${idx}`}
+card={u}
+size="mini"
+onClick={() => setZoomedCard(u)}
+draggable={true}
+onDragStart={() => handleDragStart(u, { type: 'stable', player: player.name, section: 'unicorns' })}
+className={draggedCard?.id === u.id ? 'card-dragging' : ''}
+/>
+))}
+</div>
+</div>
+)}
+{stable && stable.upgrades.length > 0 && (
+<div style={{ marginBottom: '6px' }}>
+<div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '3px' }}>Ventajas:</div>
+<div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+{stable.upgrades.map((u, idx) => (
+<Card
+key={`${u.id}-${idx}`}
+card={u}
+size="mini"
+onClick={() => setZoomedCard(u)}
+draggable={true}
+onDragStart={() => handleDragStart(u, { type: 'stable', player: player.name, section: 'upgrades' })}
+className={draggedCard?.id === u.id ? 'card-dragging' : ''}
+/>
+))}
+</div>
+</div>
+)}
+{stable && stable.downgrades.length > 0 && (
+<div style={{ marginBottom: '6px' }}>
+<div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '3px' }}>Desventajas:</div>
+<div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+{stable.downgrades.map((d, idx) => (
+<Card
+key={`${d.id}-${idx}`}
+card={d}
+size="mini"
+onClick={() => setZoomedCard(d)}
+draggable={true}
+onDragStart={() => handleDragStart(d, { type: 'stable', player: player.name, section: 'downgrades' })}
+className={draggedCard?.id === d.id ? 'card-dragging' : ''}
+/>
+))}
+</div>
+</div>
+)}
+{gameData.playerHands[player.name] && gameData.playerHands[player.name].length > 0 && (
+<div
+className={`drop-zone ${draggedCard && dragSource?.type === 'hand' ? 'drop-zone-active' : ''}`}
+onDragOver={handleDragOver}
+onDrop={(e) => handleDropOnOtherHand(e, player.name)}
+style={{
+marginTop: '8px',
+padding: '6px',
+background: 'rgba(255,255,255,0.5)',
+borderRadius: '6px',
+border: '2px dashed #999'
+}}
+>
+<div style={{
+fontSize: '0.7rem',
+color: '#666',
+marginBottom: '3px',
+display: 'flex',
+justifyContent: 'space-between',
+alignItems: 'center'
+}}>
+<span>Mano ({gameData.playerHands[player.name].length}):</span>
+<button
+onClick={() => setExpandedPlayerHand(expandedPlayerHand === player.name ? null : player.name)}
+style={{
+padding: '2px 6px',
+fontSize: '0.7rem',
+background: '#667eea',
+color: 'white',
+border: 'none',
+borderRadius: '4px',
+cursor: 'pointer'
+}}
+>
+{expandedPlayerHand === player.name ? '▼' : '▶'}
+</button>
+</div>
+<div style={{
+display: 'flex',
+gap: '3px',
+flexWrap: 'wrap',
+maxHeight: expandedPlayerHand === player.name ? 'none' : '45px',
+overflow: expandedPlayerHand === player.name ? 'visible' : 'hidden'
+}}>
+{/* Modificación para la carta 0022 - Camara para la niñera */}
+{hasNannyCam(player.name) ? (
+  // Si el jugador tiene la cámara de la niñera, mostrar las cartas reales
+  gameData.playerHands[player.name].map((card, idx) => (
+    <Card
+      key={`hand-${player.name}-${idx}`}
+      card={card}
+      size="mini"
+      onClick={() => setZoomedCard(card)}
+      draggable={true}
+      onDragStart={() => {
+        setDraggedCard(card);
+        setDragSource({ type: 'otherHand', player: player.name, index: idx });
+      }}
+      className={dragSource?.type === 'otherHand' && dragSource?.player === player.name && dragSource?.index === idx ? 'card-dragging' : ''}
+    />
+  ))
+) : (
+  // Si no tiene la cámara, mostrar dorsos
+  gameData.playerHands[player.name].map((_, idx) => (
+    <CardBack
+      key={`hand-${player.name}-${idx}`}
+      size="mini"
+      draggable={true}
+      onDragStart={() => {
+        const card = gameData.playerHands[player.name][idx];
+        setDraggedCard(card);
+        setDragSource({ type: 'otherHand', player: player.name, index: idx });
+      }}
+      className={dragSource?.type === 'otherHand' && dragSource?.player === player.name && dragSource?.index === idx ? 'card-dragging' : ''}
+    />
+  ))
+)}
+</div>
+</div>
+)}
+</div>
+);
+})}
+</div>
+</div>
+{/* Tu establo */}
+<div
+className={`drop-zone ${draggedCard ? 'drop-zone-active' : ''}`}
+onDragOver={handleDragOver}
+onDrop={(e) => handleDropOnStable(e, playerName)}
+style={{
+background: 'rgba(255, 255, 255, 0.95)',
+borderRadius: '12px',
+padding: '15px',
+border: '3px solid #667eea',
+overflow: 'auto'
+}}
+>
+<h3 style={{ marginBottom: '10px', color: '#667eea', fontSize: '1.1rem' }}>
+🏰 TU ESTABLO
+</h3>
+<div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+{myStable && myStable.unicorns.length > 0 && (
+<div style={{ flex: '1 1 300px' }}>
+<h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: '#333' }}>
+🦄 Unicornios ({myStable.unicorns.length}/{gameData.unicornsToWin}):
+</h4>
+<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+{myStable.unicorns.map((u, idx) => (
+<Card
+key={`${u.id}-${idx}`}
+card={u}
+size="small"
+onClick={() => setZoomedCard(u)}
+draggable={true}
+onDragStart={() => handleDragStart(u, { type: 'stable', player: playerName, section: 'unicorns' })}
+className={draggedCard?.id === u.id ? 'card-dragging' : ''}
+/>
+))}
+</div>
+</div>
+)}
+{myStable && myStable.upgrades.length > 0 && (
+<div style={{ flex: '1 1 200px' }}>
+<h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: '#333' }}>
+↑ Ventajas ({myStable.upgrades.length}):
+</h4>
+<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+{myStable.upgrades.map((u, idx) => (
+<Card
+key={`${u.id}-${idx}`}
+card={u}
+size="small"
+onClick={() => setZoomedCard(u)}
+draggable={true}
+onDragStart={() => handleDragStart(u, { type: 'stable', player: playerName, section: 'upgrades' })}
+className={draggedCard?.id === u.id ? 'card-dragging' : ''}
+/>
+))}
+</div>
+</div>
+)}
+{myStable && myStable.downgrades.length > 0 && (
+<div style={{ flex: '1 1 200px' }}>
+<h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: '#333' }}>
+↓ Desventajas ({myStable.downgrades.length}):
+</h4>
+<div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+{myStable.downgrades.map((d, idx) => (
+<Card
+key={`${d.id}-${idx}`}
+card={d}
+size="small"
+onClick={() => setZoomedCard(d)}
+draggable={true}
+onDragStart={() => handleDragStart(d, { type: 'stable', player: playerName, section: 'downgrades' })}
+className={draggedCard?.id === d.id ? 'card-dragging' : ''}
+/>
+))}
+</div>
+</div>
+)}
+{(!myStable || (myStable.unicorns.length === 0 && myStable.upgrades.length === 0 && myStable.downgrades.length === 0)) && (
+<div style={{
+width: '100%',
+textAlign: 'center',
+padding: '30px',
+color: '#999'
+}}>
+Arrastra cartas aquí
+</div>
+)}
+</div>
+</div>
+{/* Tu mano */}
+<div
+className={`drop-zone ${draggedCard && dragSource?.type !== 'hand' ? 'drop-zone-active' : ''}`}
+onDragOver={handleDragOver}
+onDrop={handleDropOnHand}
+style={{
+background: 'rgba(255, 255, 255, 0.95)',
+borderRadius: '12px',
+padding: '15px',
+border: '3px solid #27ae60'
+}}
+>
+<div style={{
+display: 'flex',
+justifyContent: 'space-between',
+alignItems: 'center',
+marginBottom: '10px'
+}}>
+<h3 style={{ color: '#27ae60', fontSize: '1.1rem' }}>
+✋ TU MANO ({myHand.length}/7)
+</h3>
+<button
+onClick={handleEndTurn}
+disabled={!isMyTurn}
+style={{
+padding: '10px 20px',
+fontSize: '1rem',
+fontWeight: 'bold',
+background: isMyTurn ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' : '#ccc',
+color: 'white',
+border: 'none',
+borderRadius: '8px',
+cursor: isMyTurn ? 'pointer' : 'not-allowed'
+}}
+>
+{isMyTurn ? '⏭️ Terminar Turno' : '⏳ Espera'}
+</button>
+</div>
+{myHand.length > 0 ? (
+<div style={{
+display: 'flex',
+gap: '10px',
+flexWrap: 'wrap',
+justifyContent: 'center'
+}}>
+{myHand.map((card, index) => (
+<div key={`${card.id}-${index}`} style={{ position: 'relative' }}>
+<Card
+card={card}
+draggable={true}
+onDragStart={() => handleDragStart(card, { type: 'hand' })}
+className={draggedCard?.id === card.id ? 'card-dragging' : ''}
+onClick={() => setZoomedCard(card)}
+/>
+{/* Botones para cartas especiales */}
+{isMyTurn && (card.filename === '0046' || card.filename === '0050') && (
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      if (card.filename === '0046') handleUseRoboDescarado();
+      if (card.filename === '0050') handleUseTratoInjusto();
+    }}
+    style={{
+      position: 'absolute',
+      bottom: '5px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      padding: '3px 10px',
+      fontSize: '0.6rem',
+      background: '#e74c3c',
+      color: 'white',
+      border: 'none',
+      borderRadius: '15px',
+      cursor: 'pointer',
+      zIndex: 10,
+      whiteSpace: 'nowrap'
+    }}
+  >
+    Usar
+  </button>
+)}
+</div>
+))}
+</div>
+) : (
+<div style={{
+textAlign: 'center',
+padding: '20px',
+color: '#999'
+}}>
+Sin cartas
+</div>
+)}
+</div>
+</div>
+</div>
+);
+}
+ReactDOM.render(<UnstableUnicornsGame />, document.getElementById('root'));
+</script>
+</body>
+</html>

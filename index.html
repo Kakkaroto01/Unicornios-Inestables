@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unstable Unicorns - Versión 1.3</title>
+<title>Unstable Unicorns - Versión 0.9</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -21,29 +21,9 @@
     messagingSenderId: "955258363437",
     appId: "1:955258363437:web:4f1422dc59155035cd22a4"
   };
+  // Inicializa Firebase
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
-  
-  // 👇 CÓDIGO DE VERIFICACIÓN - AGREGA ESTO AQUÍ 👇
-  database.ref('.info/connected').on('value', (snapshot) => {
-    console.log("Conexión a Firebase:", snapshot.val() ? "Conectado" : "Desconectado");
-  });
-  
-  // Prueba de escritura y lectura
-  const testRef = database.ref('test-connection');
-  testRef.set({
-    timestamp: Date.now(),
-    message: "¡Conexión exitosa!"
-  }).then(() => {
-    console.log("Escritura exitosa a Firebase");
-    
-    testRef.once('value').then(snapshot => {
-      console.log("Lectura exitosa de Firebase:", snapshot.val());
-    });
-  }).catch(error => {
-    console.error("Error con Firebase:", error);
-  });
-  // 👆 CÓDIGO DE VERIFICACIÓN - HASTA AQUÍ 👆
 </script>
 <style>
 * {
@@ -1239,7 +1219,7 @@ guarderia.push(cardWithId);
 } else {
 // El resto va al mazo
 for (let i = 0; i < card.quantity; i++) {
-deck.push({...card, id: `${card.filename}-${i}-${Date.now()}`);
+deck.push({...card, id: `${card.filename}-${i}-${Date.now()}`});
 }
 }
 });
@@ -1284,14 +1264,14 @@ setMyHand(game.playerHands[playerName]);
 showMessage(`Turno de ${game.currentPlayer}`);
 };
 const syncGame = () => {
-  database.ref(`games/${roomCode}`).once('value').then(snapshot => {
-    if (snapshot.exists()) {
-      const game = snapshot.val();
-      setGameData(game);
-      setMyHand(game.playerHands[playerName] || []);
-    }
-  });
-};
+// Usar Firebase en lugar de localStorage
+database.ref(`games/${roomCode}`).once('value').then(snapshot => {
+if (snapshot.exists()) {
+const game = snapshot.val();
+setGameData(game);
+setMyHand(game.playerHands[playerName] || []);
+}
+});
 };
 useEffect(() => {
 const interval = setInterval(syncGame, 1000);
@@ -1828,7 +1808,7 @@ overflow: 'hidden'
 {/* Zona superior: Mazo, Descartes, Guardería y Establos */}
 <div style={{
 display: 'grid',
-gridTemplateColumns: '180px 180px 180px 1fr', // NUEVO: Columna extra para guardería
+gridTemplateColumns: '180px 180px 180px 1fr',
 gap: '10px',
 alignItems: 'start'
 }}>
@@ -1985,7 +1965,7 @@ alignItems: 'center',
 justifyContent: 'center',
 cursor: 'pointer',
 boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-border: '3px solid #9B59B6', // Color morado para bebés
+border: '3px solid #9B59B6',
 overflow: 'hidden',
 position: 'relative',
 margin: '0 auto',

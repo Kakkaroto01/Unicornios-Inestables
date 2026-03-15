@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unstable Unicorns - Versión 2.1</title>
+<title>Unstable Unicorns - Versión 2.2</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -363,8 +363,10 @@ const CARD_CATALOG = [
 // ========== UTILIDADES ==========
 const getCardImagePath = (card) => {
   if (card.expansion === 'dragones') return `Imagenes Dragones/${card.filename}.png`;
-  if (card.folder === 'Imagenes2') return `Imagenes2/${card.filename}.jpg`;
-  return `Imagenes1/${card.filename}.jpg`;
+  // Buscar en el catálogo por si la carta de Firebase no tiene el campo folder
+  const catalogCard = CARD_CATALOG.find(c => c.filename === card.filename);
+  const folder = card.folder || catalogCard?.folder || 'Imagenes1';
+  return `${folder}/${card.filename}.jpg`;
 };
 
 const getCardFallback = (card, e) => {

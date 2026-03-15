@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unstable Unicorns - Versión 2</title>
+<title>Unstable Unicorns - Versión 2.1</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -315,16 +315,16 @@ const CARD_CATALOG = [
   {"filename":"0071","name":"Veneno","type":"magic","quantity":1,"bannedIn1v1":false},
   {"filename":"0072","name":"Vortice","type":"magic","quantity":1,"bannedIn1v1":false},
   {"filename":"0073","name":"reina del baile","type":"magic","quantity":1,"bannedIn1v1":false},
-  {"filename":"0074","name":"Unipaca","type":"magic","quantity":1,"bannedIn1v1":false},
-  {"filename":"0075","name":"Unicornio Mama Ganso","type":"magic","quantity":1,"bannedIn1v1":false},
-  {"filename":"0076","name":"Unicornio Nigromante","type":"magic","quantity":1,"bannedIn1v1":false},
-  {"filename":"0077","name":"Unicornio Oraculo","type":"magic","quantity":1,"bannedIn1v1":false},
-  {"filename":"0078","name":"Unicornio Angel Oscuro","type":"magic","quantity":1,"bannedIn1v1":false},
-  {"filename":"0079","name":"Hasta las cejas de cafeina","type":"upgrade","quantity":1,"bannedIn1v1":false},
-  {"filename":"0080","name":"Tragamonedas","type":"upgrade","quantity":3,"bannedIn1v1":false},
-  {"filename":"0081","name":"Beso de amor verdadero","type":"magic","quantity":1,"bannedIn1v1":false},
-  {"filename":"0082","name":"Lazo del arcoiris","type":"upgrade","quantity":1,"bannedIn1v1":false},
-  {"filename":"0083","name":"Artilleria en el establo","type":"upgrade","quantity":3,"bannedIn1v1":false},
+  {"filename":"0074","name":"Unipaca","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0075","name":"Unicornio Mama Ganso","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0076","name":"Unicornio Nigromante","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0077","name":"Unicornio Oraculo","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0078","name":"Unicornio Angel Oscuro","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0079","name":"Hasta las cejas de cafeina","type":"upgrade","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0080","name":"Tragamonedas","type":"upgrade","quantity":3,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0081","name":"Beso de amor verdadero","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0082","name":"Lazo del arcoiris","type":"upgrade","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0083","name":"Artilleria en el establo","type":"upgrade","quantity":3,"bannedIn1v1":false,"folder":"Imagenes2"},
 
   // ========== EXPANSIÓN DRAGONES ==========
   {"filename":"D - bebe unicornio 1","name":"D - Bebe Unicornio 1","type":"baby","quantity":1,"bannedIn1v1":false,"expansion":"dragones"},
@@ -363,6 +363,7 @@ const CARD_CATALOG = [
 // ========== UTILIDADES ==========
 const getCardImagePath = (card) => {
   if (card.expansion === 'dragones') return `Imagenes Dragones/${card.filename}.png`;
+  if (card.folder === 'Imagenes2') return `Imagenes2/${card.filename}.jpg`;
   return `Imagenes1/${card.filename}.jpg`;
 };
 

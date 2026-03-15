@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unstable Unicorns - Versión 1.2</title>
+<title>Unstable Unicorns - Versión 1.3</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -380,6 +380,7 @@ function CardZoom({ card, onClose }) {
         alt={card.name}
         className="card-zoom-image"
         onError={(e) => getCardFallback(card, e)}
+        style={{ minWidth: '300px', minHeight: '400px', objectFit: 'contain' }}
       />
     </div>
   );
@@ -1171,6 +1172,22 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
     setDraggedCard(null); setDragSource(null);
   };
 
+  const handleDropOnDeck = (e) => {
+    e.preventDefault();
+    if (!draggedCard || dragSource?.type !== 'hand') return;
+    const newGameData = deepCopyGame(gameData);
+    const idx = newGameData.playerHands[playerName].findIndex(c => c.id === draggedCard.id);
+    if (idx !== -1) {
+      const removed = newGameData.playerHands[playerName].splice(idx, 1)[0];
+      // Insertar en posición aleatoria del mazo
+      const pos = Math.floor(Math.random() * (newGameData.deck.length + 1));
+      newGameData.deck.splice(pos, 0, removed);
+      updateGame(newGameData);
+      showMessage(`${removed.name} mezclada en el mazo`);
+    }
+    setDraggedCard(null); setDragSource(null);
+  };
+
   const handleDropOnHand = (e) => {
     e.preventDefault();
     if (!draggedCard || !dragSource || dragSource.type === 'hand') return;
@@ -1413,195 +1430,211 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
         <div style={{ fontSize: '0.9rem', color: '#666' }}>Ganar con: {gameData.unicornsToWin} 🦄</div>
       </div>
 
-      {/* Área principal */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateRows: 'auto 1fr auto', gap: '10px', padding: '10px', overflow: 'hidden' }}>
+      {/* Área principal: 3 filas */}
+      <div style={{ flex: 1, display: 'grid', gridTemplateRows: '1fr auto auto', gap: '8px', padding: '8px', overflow: 'hidden' }}>
 
-        {/* Fila superior: Mazo, Descartes, Guardería, Establos */}
-        <div style={{ display: 'grid', gridTemplateColumns: '180px 180px 180px 1fr', gap: '10px', alignItems: 'start' }}>
-          {/* Mazo */}
-          <div style={{ textAlign: 'center' }}>
-            <div onClick={handleDrawCard} style={{ width: '140px', height: '196px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', border: '3px solid white', margin: '0 auto' }}>
-              <div style={{ fontSize: '3rem' }}>🎴</div>
-              <div style={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }}>{gameData.deck.length}</div>
-            </div>
-            <button onClick={() => setShowDeckModal(true)} style={{ marginTop: '8px', padding: '6px 12px', fontSize: '0.75rem', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'block', width: '100%' }}>Ver Mazo</button>
-            <button onClick={handleShuffleDeck} disabled={gameData.deck.length === 0} style={{ marginTop: '5px', padding: '6px 12px', fontSize: '0.75rem', background: gameData.deck.length > 0 ? '#9b59b6' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: gameData.deck.length > 0 ? 'pointer' : 'not-allowed', display: 'block', width: '100%' }}>🔀 Barajar</button>
-          </div>
-
-          {/* Descartes */}
-          <div style={{ textAlign: 'center' }}>
-            <div className={`drop-zone ${draggedCard ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={handleDropOnDiscard} onClick={() => setShowDiscardModal(true)} style={{ width: '140px', height: '196px', background: gameData.discard.length > 0 ? 'white' : '#f5f5f5', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', border: '3px solid #e0e0e0', overflow: 'hidden', position: 'relative', margin: '0 auto' }}>
-              {gameData.discard.length > 0
-                ? <img src={getCardImagePath(gameData.discard[gameData.discard.length-1])} alt="Última descartada" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => getCardFallback(gameData.discard[gameData.discard.length-1], e)} />
-                : <div style={{ fontSize: '3rem' }}>🗑️</div>
-              }
-              <div style={{ position: 'absolute', bottom: '5px', right: '5px', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '3px 8px', borderRadius: '5px', fontSize: '0.8rem', fontWeight: 'bold' }}>{gameData.discard.length}</div>
-            </div>
-            <button onClick={handleShuffleDiscardIntoDeck} disabled={gameData.discard.length === 0} style={{ marginTop: '8px', padding: '6px 12px', fontSize: '0.75rem', background: gameData.discard.length > 0 ? '#e74c3c' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: gameData.discard.length > 0 ? 'pointer' : 'not-allowed' }}>Barajar al mazo</button>
-          </div>
-
-          {/* Guardería */}
-          <div style={{ textAlign: 'center' }}>
-            <div className={`drop-zone ${draggedCard && draggedCard.type === 'baby' ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={handleDropOnGuarderia} onClick={() => setShowGuarderiaModal(true)} style={{ width: '140px', height: '196px', background: gameData.guarderia.length > 0 ? 'white' : '#f5f5f5', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', border: '3px solid #9B59B6', overflow: 'hidden', position: 'relative', margin: '0 auto' }}>
-              {gameData.guarderia.length > 0
-                ? <img src={getCardImagePath(gameData.guarderia[gameData.guarderia.length-1])} alt="Guardería" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => getCardFallback(gameData.guarderia[gameData.guarderia.length-1], e)} />
-                : <div style={{ fontSize: '3rem' }}>🍼</div>
-              }
-              <div style={{ position: 'absolute', bottom: '5px', right: '5px', background: 'rgba(155,89,182,0.9)', color: 'white', padding: '3px 8px', borderRadius: '5px', fontSize: '0.8rem', fontWeight: 'bold' }}>{gameData.guarderia.length}</div>
-            </div>
-            <button onClick={() => setShowGuarderiaModal(true)} disabled={gameData.guarderia.length === 0} style={{ marginTop: '8px', padding: '6px 12px', fontSize: '0.75rem', background: gameData.guarderia.length > 0 ? '#9B59B6' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: gameData.guarderia.length > 0 ? 'pointer' : 'not-allowed' }}>Ver Guardería</button>
-          </div>
-
-          {/* Establos otros jugadores */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignContent: 'start' }}>
+        {/* FILA 1: Establos rivales */}
+        <div style={{ overflowY: 'auto', background: 'rgba(0,0,0,0.15)', borderRadius: '12px', padding: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {players.filter(p => p.name !== playerName).map((player) => {
               const stable = gameData.playerStables?.[player.name] || { unicorns: [], upgrades: [], downgrades: [] };
               const unicornCount = stable.unicorns.length;
               const isWinner = unicornCount >= gameData.unicornsToWin;
+              const playerColor = `hsl(${players.findIndex(p => p.name === player.name) * 60}, 70%, 60%)`;
               return (
-                <div key={player.name} className={`drop-zone ${draggedCard ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={(e) => handleDropOnStable(e, player.name)} style={{ background: isWinner ? '#d4edda' : '#f8f9fa', padding: '10px', borderRadius: '8px', border: '2px solid #e0e0e0', minWidth: '200px', maxWidth: '250px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: `hsl(${players.findIndex(p => p.name === player.name) * 60}, 70%, 60%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                <div key={player.name}
+                  className={`drop-zone ${draggedCard ? 'drop-zone-active' : ''}`}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDropOnStable(e, player.name)}
+                  style={{ background: isWinner ? '#d4edda' : 'rgba(255,255,255,0.92)', borderRadius: '10px', border: `2px solid ${isWinner ? '#27ae60' : '#ddd'}`, padding: '8px', minWidth: '240px', flex: '1 1 240px', maxWidth: '320px' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: playerColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '0.8rem', flexShrink: 0 }}>
                       {player.name[0].toUpperCase()}
                     </div>
-                    <strong style={{ fontSize: '0.85rem' }}>{player.name}</strong>
-                    {isWinner && <span>🏆</span>}
+                    <strong style={{ fontSize: '0.82rem', flex: 1 }}>{player.name}{isWinner && ' 🏆'}</strong>
+                    <span style={{ fontSize: '0.75rem', color: '#666' }}>🦄{unicornCount}/{gameData.unicornsToWin}</span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', marginBottom: '6px' }}>
-                    🦄 {unicornCount}/{gameData.unicornsToWin} | ✋ {gameData.playerHands?.[player.name]?.length || 0}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    <div>
+                      {stable.unicorns.length > 0 && (
+                        <div style={{ marginBottom: '4px' }}>
+                          <div style={{ fontSize: '0.65rem', color: '#888', marginBottom: '2px' }}>🦄 Unicornios</div>
+                          <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
+                            {stable.unicorns.map((u, idx) => (
+                              <Card key={`${u.id}-${idx}`} card={u} size="mini" onClick={() => setZoomedCard(u)} draggable onDragStart={() => handleDragStart(u, { type: 'stable', player: player.name, section: 'unicorns' })} className={draggedCard?.id === u.id ? 'card-dragging' : ''} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {gameData.playerHands?.[player.name]?.length > 0 && (
+                        <div className={`drop-zone ${draggedCard && dragSource?.type === 'hand' ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={(e) => handleDropOnOtherHand(e, player.name)}
+                          style={{ padding: '4px', background: 'rgba(0,0,0,0.04)', borderRadius: '5px', border: '1px dashed #bbb' }}>
+                          <div style={{ fontSize: '0.65rem', color: '#888', marginBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>✋ {gameData.playerHands[player.name].length}</span>
+                            <button onClick={() => setExpandedPlayerHand(expandedPlayerHand === player.name ? null : player.name)}
+                              style={{ padding: '0 4px', fontSize: '0.6rem', background: '#667eea', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>
+                              {expandedPlayerHand === player.name ? '▼' : '▶'}
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap', maxHeight: expandedPlayerHand === player.name ? 'none' : '30px', overflow: 'hidden' }}>
+                            {hasNannyCam(player.name)
+                              ? gameData.playerHands[player.name].map((card, idx) => (
+                                  <Card key={`hand-${player.name}-${idx}`} card={card} size="mini" onClick={() => setZoomedCard(card)} draggable onDragStart={() => { setDraggedCard(card); setDragSource({ type: 'otherHand', player: player.name, index: idx }); }} className={dragSource?.type === 'otherHand' && dragSource?.player === player.name && dragSource?.index === idx ? 'card-dragging' : ''} />
+                                ))
+                              : gameData.playerHands[player.name].map((_, idx) => (
+                                  <CardBack key={`hand-${player.name}-${idx}`} size="mini" draggable onDragStart={() => { const card = gameData.playerHands[player.name][idx]; setDraggedCard(card); setDragSource({ type: 'otherHand', player: player.name, index: idx }); }} className={dragSource?.type === 'otherHand' && dragSource?.player === player.name && dragSource?.index === idx ? 'card-dragging' : ''} />
+                                ))
+                            }
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      {stable.upgrades.length > 0 && (
+                        <div style={{ marginBottom: '4px' }}>
+                          <div style={{ fontSize: '0.65rem', color: '#e67e22', marginBottom: '2px' }}>↑ Ventajas</div>
+                          <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
+                            {stable.upgrades.map((u, idx) => (
+                              <Card key={`${u.id}-${idx}`} card={u} size="mini" onClick={() => setZoomedCard(u)} draggable onDragStart={() => handleDragStart(u, { type: 'stable', player: player.name, section: 'upgrades' })} className={draggedCard?.id === u.id ? 'card-dragging' : ''} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {stable.downgrades.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: '0.65rem', color: '#e74c3c', marginBottom: '2px' }}>↓ Desventajas</div>
+                          <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap' }}>
+                            {stable.downgrades.map((d, idx) => (
+                              <Card key={`${d.id}-${idx}`} card={d} size="mini" onClick={() => setZoomedCard(d)} draggable onDragStart={() => handleDragStart(d, { type: 'stable', player: player.name, section: 'downgrades' })} className={draggedCard?.id === d.id ? 'card-dragging' : ''} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {stable.upgrades.length === 0 && stable.downgrades.length === 0 && (
+                        <div style={{ fontSize: '0.65rem', color: '#ccc', textAlign: 'center', paddingTop: '10px' }}>Sin mejoras</div>
+                      )}
+                    </div>
                   </div>
-                  {stable.unicorns.length > 0 && (
-                    <div style={{ marginBottom: '6px' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '3px' }}>Unicornios:</div>
-                      <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                        {stable.unicorns.map((u, idx) => (
-                          <Card key={`${u.id}-${idx}`} card={u} size="mini" onClick={() => setZoomedCard(u)} draggable onDragStart={() => handleDragStart(u, { type: 'stable', player: player.name, section: 'unicorns' })} className={draggedCard?.id === u.id ? 'card-dragging' : ''} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {stable.upgrades.length > 0 && (
-                    <div style={{ marginBottom: '6px' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '3px' }}>Ventajas:</div>
-                      <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                        {stable.upgrades.map((u, idx) => (
-                          <Card key={`${u.id}-${idx}`} card={u} size="mini" onClick={() => setZoomedCard(u)} draggable onDragStart={() => handleDragStart(u, { type: 'stable', player: player.name, section: 'upgrades' })} className={draggedCard?.id === u.id ? 'card-dragging' : ''} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {stable.downgrades.length > 0 && (
-                    <div style={{ marginBottom: '6px' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '3px' }}>Desventajas:</div>
-                      <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                        {stable.downgrades.map((d, idx) => (
-                          <Card key={`${d.id}-${idx}`} card={d} size="mini" onClick={() => setZoomedCard(d)} draggable onDragStart={() => handleDragStart(d, { type: 'stable', player: player.name, section: 'downgrades' })} className={draggedCard?.id === d.id ? 'card-dragging' : ''} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {/* Mano del otro jugador */}
-                  {gameData.playerHands?.[player.name]?.length > 0 && (
-                    <div className={`drop-zone ${draggedCard && dragSource?.type === 'hand' ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={(e) => handleDropOnOtherHand(e, player.name)} style={{ marginTop: '8px', padding: '6px', background: 'rgba(255,255,255,0.5)', borderRadius: '6px', border: '2px dashed #999' }}>
-                      <div style={{ fontSize: '0.7rem', color: '#666', marginBottom: '3px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Mano ({gameData.playerHands[player.name].length}):</span>
-                        <button onClick={() => setExpandedPlayerHand(expandedPlayerHand === player.name ? null : player.name)} style={{ padding: '2px 6px', fontSize: '0.7rem', background: '#667eea', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                          {expandedPlayerHand === player.name ? '▼' : '▶'}
-                        </button>
-                      </div>
-                      <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', maxHeight: expandedPlayerHand === player.name ? 'none' : '45px', overflow: expandedPlayerHand === player.name ? 'visible' : 'hidden' }}>
-                        {hasNannyCam(player.name)
-                          ? gameData.playerHands[player.name].map((card, idx) => (
-                              <Card key={`hand-${player.name}-${idx}`} card={card} size="mini" onClick={() => setZoomedCard(card)} draggable onDragStart={() => { setDraggedCard(card); setDragSource({ type: 'otherHand', player: player.name, index: idx }); }} className={dragSource?.type === 'otherHand' && dragSource?.player === player.name && dragSource?.index === idx ? 'card-dragging' : ''} />
-                            ))
-                          : gameData.playerHands[player.name].map((_, idx) => (
-                              <CardBack key={`hand-${player.name}-${idx}`} size="mini" draggable onDragStart={() => { const card = gameData.playerHands[player.name][idx]; setDraggedCard(card); setDragSource({ type: 'otherHand', player: player.name, index: idx }); }} className={dragSource?.type === 'otherHand' && dragSource?.player === player.name && dragSource?.index === idx ? 'card-dragging' : ''} />
-                            ))
-                        }
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Tu establo */}
-        <div className={`drop-zone ${draggedCard ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={(e) => handleDropOnStable(e, playerName)} style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '15px', border: '3px solid #667eea', overflow: 'auto' }}>
-          <h3 style={{ marginBottom: '10px', color: '#667eea', fontSize: '1.1rem' }}>🏰 TU ESTABLO</h3>
-          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-            {myStable.unicorns.length > 0 && (
-              <div style={{ flex: '1 1 300px' }}>
-                <h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: '#333' }}>🦄 Unicornios ({myStable.unicorns.length}/{gameData.unicornsToWin}):</h4>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {myStable.unicorns.map((u, idx) => (
-                    <Card key={`${u.id}-${idx}`} card={u} size="small" onClick={() => setZoomedCard(u)} draggable onDragStart={() => handleDragStart(u, { type: 'stable', player: playerName, section: 'unicorns' })} className={draggedCard?.id === u.id ? 'card-dragging' : ''} />
-                  ))}
-                </div>
+        {/* FILA 2: Solo tu establo (2 columnas) */}
+        <div className={`drop-zone ${draggedCard ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={(e) => handleDropOnStable(e, playerName)}
+          style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '10px', border: '3px solid #667eea', overflow: 'auto' }}>
+          <h3 style={{ marginBottom: '8px', color: '#667eea', fontSize: '0.95rem' }}>🏰 TU ESTABLO</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#555', marginBottom: '4px', fontWeight: 'bold' }}>🦄 Unicornios ({myStable.unicorns.length}/{gameData.unicornsToWin})</div>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {myStable.unicorns.map((u, idx) => (
+                  <Card key={`${u.id}-${idx}`} card={u} size="small" onClick={() => setZoomedCard(u)} draggable onDragStart={() => handleDragStart(u, { type: 'stable', player: playerName, section: 'unicorns' })} className={draggedCard?.id === u.id ? 'card-dragging' : ''} />
+                ))}
+                {myStable.unicorns.length === 0 && <div style={{ color: '#ccc', fontSize: '0.8rem', paddingTop: '5px' }}>Vacío</div>}
               </div>
-            )}
-            {myStable.upgrades.length > 0 && (
-              <div style={{ flex: '1 1 200px' }}>
-                <h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: '#333' }}>↑ Ventajas ({myStable.upgrades.length}):</h4>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {myStable.upgrades.map((u, idx) => (
-                    <Card key={`${u.id}-${idx}`} card={u} size="small" onClick={() => setZoomedCard(u)} draggable onDragStart={() => handleDragStart(u, { type: 'stable', player: playerName, section: 'upgrades' })} className={draggedCard?.id === u.id ? 'card-dragging' : ''} />
-                  ))}
+            </div>
+            <div>
+              {myStable.upgrades.length > 0 && (
+                <div style={{ marginBottom: '8px' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#e67e22', marginBottom: '4px', fontWeight: 'bold' }}>↑ Ventajas ({myStable.upgrades.length})</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {myStable.upgrades.map((u, idx) => (
+                      <Card key={`${u.id}-${idx}`} card={u} size="small" onClick={() => setZoomedCard(u)} draggable onDragStart={() => handleDragStart(u, { type: 'stable', player: playerName, section: 'upgrades' })} className={draggedCard?.id === u.id ? 'card-dragging' : ''} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-            {myStable.downgrades.length > 0 && (
-              <div style={{ flex: '1 1 200px' }}>
-                <h4 style={{ fontSize: '0.9rem', marginBottom: '8px', color: '#333' }}>↓ Desventajas ({myStable.downgrades.length}):</h4>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {myStable.downgrades.map((d, idx) => (
-                    <Card key={`${d.id}-${idx}`} card={d} size="small" onClick={() => setZoomedCard(d)} draggable onDragStart={() => handleDragStart(d, { type: 'stable', player: playerName, section: 'downgrades' })} className={draggedCard?.id === d.id ? 'card-dragging' : ''} />
-                  ))}
+              )}
+              {myStable.downgrades.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: '#e74c3c', marginBottom: '4px', fontWeight: 'bold' }}>↓ Desventajas ({myStable.downgrades.length})</div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {myStable.downgrades.map((d, idx) => (
+                      <Card key={`${d.id}-${idx}`} card={d} size="small" onClick={() => setZoomedCard(d)} draggable onDragStart={() => handleDragStart(d, { type: 'stable', player: playerName, section: 'downgrades' })} className={draggedCard?.id === d.id ? 'card-dragging' : ''} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-            {myStable.unicorns.length === 0 && myStable.upgrades.length === 0 && myStable.downgrades.length === 0 && (
-              <div style={{ width: '100%', textAlign: 'center', padding: '30px', color: '#999' }}>Arrastra cartas aquí</div>
-            )}
+              )}
+              {myStable.upgrades.length === 0 && myStable.downgrades.length === 0 && (
+                <div style={{ color: '#ccc', fontSize: '0.8rem', paddingTop: '5px' }}>Sin mejoras</div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Tu mano */}
-        <div className={`drop-zone ${draggedCard && dragSource?.type !== 'hand' ? 'drop-zone-active' : ''} ${myHand.length > 7 ? 'hand-over-limit' : ''}`} onDragOver={handleDragOver} onDrop={handleDropOnHand} style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '15px', border: `3px solid ${myHand.length > 7 ? '#e74c3c' : '#27ae60'}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <h3 style={{ color: myHand.length > 7 ? '#e74c3c' : '#27ae60', fontSize: '1.1rem' }}>
-              ✋ TU MANO ({myHand.length}/7)
-              {myHand.length > 7 && (
-                <span style={{ marginLeft: '10px', fontSize: '0.85rem', background: '#e74c3c', color: 'white', padding: '2px 10px', borderRadius: '20px', fontWeight: 'bold' }}>
-                  ⚠️ Descarta {myHand.length - 7}
-                </span>
-              )}
-            </h3>
-            <button onClick={handleEndTurn} disabled={!isMyTurn} style={{ padding: '10px 20px', fontSize: '1rem', fontWeight: 'bold', background: isMyTurn ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' : '#ccc', color: 'white', border: 'none', borderRadius: '8px', cursor: isMyTurn ? 'pointer' : 'not-allowed' }}>
-              {isMyTurn ? '⏭️ Terminar Turno' : '⏳ Espera'}
-            </button>
+        {/* FILA 3: Mazo, Descartes, Guardería + Tu mano */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+
+          {/* Mazo */}
+          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+            <div className={`drop-zone ${draggedCard && dragSource?.type === 'hand' ? 'drop-zone-active' : ''}`}
+              onDragOver={handleDragOver} onDrop={handleDropOnDeck} onClick={handleDrawCard}
+              style={{ width: '90px', height: '126px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', border: '3px solid white', margin: '0 auto' }}>
+              <div style={{ fontSize: '1.8rem' }}>🎴</div>
+              <div style={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>{gameData.deck.length}</div>
+            </div>
+            <button onClick={() => setShowDeckModal(true)} style={{ marginTop: '4px', padding: '3px 6px', fontSize: '0.65rem', background: '#667eea', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'block', width: '100%' }}>Ver</button>
+            <button onClick={handleShuffleDeck} disabled={gameData.deck.length === 0} style={{ marginTop: '3px', padding: '3px 6px', fontSize: '0.65rem', background: gameData.deck.length > 0 ? '#9b59b6' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', cursor: gameData.deck.length > 0 ? 'pointer' : 'not-allowed', display: 'block', width: '100%' }}>🔀</button>
           </div>
-          {myHand.length > 0 ? (
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {myHand.map((card, index) => (
-                <div key={`${card.id}-${index}`} style={{ position: 'relative' }}>
-                  <Card card={card} draggable onDragStart={() => handleDragStart(card, { type: 'hand' })} className={draggedCard?.id === card.id ? 'card-dragging' : ''} onClick={() => setZoomedCard(card)} />
+
+          {/* Descartes */}
+          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+            <div className={`drop-zone ${draggedCard ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={handleDropOnDiscard} onClick={() => setShowDiscardModal(true)}
+              style={{ width: '90px', height: '126px', background: gameData.discard.length > 0 ? 'white' : '#f5f5f5', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', border: '3px solid #e0e0e0', overflow: 'hidden', position: 'relative', margin: '0 auto' }}>
+              {gameData.discard.length > 0
+                ? <img src={getCardImagePath(gameData.discard[gameData.discard.length-1])} alt="Última descartada" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => getCardFallback(gameData.discard[gameData.discard.length-1], e)} />
+                : <div style={{ fontSize: '1.8rem' }}>🗑️</div>
+              }
+              <div style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>{gameData.discard.length}</div>
+            </div>
+            <button onClick={handleShuffleDiscardIntoDeck} disabled={gameData.discard.length === 0} style={{ marginTop: '4px', padding: '3px 6px', fontSize: '0.65rem', background: gameData.discard.length > 0 ? '#e74c3c' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', cursor: gameData.discard.length > 0 ? 'pointer' : 'not-allowed', display: 'block', width: '100%' }}>Al mazo</button>
+          </div>
+
+          {/* Guardería */}
+          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+            <div className={`drop-zone ${draggedCard && draggedCard.type === 'baby' ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={handleDropOnGuarderia} onClick={() => setShowGuarderiaModal(true)}
+              style={{ width: '90px', height: '126px', background: gameData.guarderia.length > 0 ? 'white' : '#f5f5f5', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', border: '3px solid #9B59B6', overflow: 'hidden', position: 'relative', margin: '0 auto' }}>
+              {gameData.guarderia.length > 0
+                ? <img src={getCardImagePath(gameData.guarderia[gameData.guarderia.length-1])} alt="Guardería" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => getCardFallback(gameData.guarderia[gameData.guarderia.length-1], e)} />
+                : <div style={{ fontSize: '1.8rem' }}>🍼</div>
+              }
+              <div style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(155,89,182,0.9)', color: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold' }}>{gameData.guarderia.length}</div>
+            </div>
+            <button onClick={() => setShowGuarderiaModal(true)} disabled={gameData.guarderia.length === 0} style={{ marginTop: '4px', padding: '3px 6px', fontSize: '0.65rem', background: gameData.guarderia.length > 0 ? '#9B59B6' : '#ccc', color: 'white', border: 'none', borderRadius: '4px', cursor: gameData.guarderia.length > 0 ? 'pointer' : 'not-allowed', display: 'block', width: '100%' }}>Ver</button>
+          </div>
+
+          {/* Tu mano */}
+          <div className={`drop-zone ${draggedCard && dragSource?.type !== 'hand' ? 'drop-zone-active' : ''} ${myHand.length > 7 ? 'hand-over-limit' : ''}`}
+            onDragOver={handleDragOver} onDrop={handleDropOnHand}
+            style={{ flex: 1, background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '10px', border: `3px solid ${myHand.length > 7 ? '#e74c3c' : '#27ae60'}`, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ color: myHand.length > 7 ? '#e74c3c' : '#27ae60', fontSize: '0.9rem' }}>
+                ✋ TU MANO ({myHand.length}/7)
+                {myHand.length > 7 && <span style={{ marginLeft: '8px', fontSize: '0.7rem', background: '#e74c3c', color: 'white', padding: '1px 7px', borderRadius: '10px' }}>⚠️ -{myHand.length - 7}</span>}
+              </h3>
+              <button onClick={handleEndTurn} disabled={!isMyTurn} style={{ padding: '8px 14px', fontSize: '0.85rem', fontWeight: 'bold', background: isMyTurn ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' : '#ccc', color: 'white', border: 'none', borderRadius: '8px', cursor: isMyTurn ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}>
+                {isMyTurn ? '⏭️ Turno' : '⏳ Espera'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', overflowY: 'auto' }}>
+              {myHand.length > 0 ? myHand.map((card, index) => (
+                <div key={`${card.id}-${index}`} style={{ position: 'relative', flexShrink: 0 }}>
+                  <Card card={card} size="small" draggable onDragStart={() => handleDragStart(card, { type: 'hand' })} className={draggedCard?.id === card.id ? 'card-dragging' : ''} onClick={() => setZoomedCard(card)} />
                   {isMyTurn && (card.filename === '0046' || card.filename === '0050') && (
                     <button onClick={(e) => {
                       e.stopPropagation();
                       if (card.filename === '0046') setSelectedCardAction('robo_descarado');
                       if (card.filename === '0050') setSelectedCardAction('trato_injusto');
-                    }} style={{ position: 'absolute', bottom: '5px', left: '50%', transform: 'translateX(-50%)', padding: '3px 10px', fontSize: '0.6rem', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', zIndex: 10, whiteSpace: 'nowrap' }}>
+                    }} style={{ position: 'absolute', bottom: '3px', left: '50%', transform: 'translateX(-50%)', padding: '2px 6px', fontSize: '0.55rem', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', zIndex: 10, whiteSpace: 'nowrap' }}>
                       Usar
                     </button>
                   )}
                 </div>
-              ))}
+              )) : <div style={{ color: '#999', fontSize: '0.8rem', paddingTop: '5px' }}>Sin cartas</div>}
             </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>Sin cartas</div>
-          )}
+          </div>
         </div>
       </div>
     </div>

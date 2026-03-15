@@ -22,6 +22,25 @@
   };
   firebase.initializeApp(firebaseConfig);
   window.database = firebase.database();
+
+  // Limpieza automática: borra salas y partidas con más de 10 min sin actividad
+  function cleanOldRooms() {
+    const cutoff = Date.now() - 10 * 60 * 1000; // 10 minutos
+    window.database.ref('games').once('value').then(snap => {
+      snap.forEach(child => {
+        const game = child.val();
+        if (game && game.lastUpdate && game.lastUpdate < cutoff) {
+          const code = child.key;
+          window.database.ref(`games/${code}`).remove();
+          window.database.ref(`rooms/${code}`).remove();
+          window.database.ref(`baby-selections/${code}`).remove();
+        }
+      });
+    });
+  }
+  // Ejecutar al cargar y cada 2 minutos
+  cleanOldRooms();
+  setInterval(cleanOldRooms, 2 * 60 * 1000);
 </script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -172,6 +191,48 @@ body {
 ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
 ::-webkit-scrollbar-thumb { background: rgba(102,126,234,0.5); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(102,126,234,0.8); }
+.hand-over-limit {
+  border-color: #e74c3c !important;
+  background: rgba(231, 76, 60, 0.05) !important;
+  animation: handWarning 1s ease-in-out infinite;
+}
+@keyframes handWarning {
+  0%, 100% { box-shadow: 0 0 0px rgba(231,76,60,0); }
+  50% { box-shadow: 0 0 15px rgba(231,76,60,0.6); }
+}
+.winner-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002;
+  animation: fadeIn 0.5s;
+}
+.winner-content {
+  background: white;
+  border-radius: 24px;
+  padding: 50px 60px;
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: zoomIn 0.4s;
+}
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: confettiFall linear forwards;
+  z-index: 10003;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
 </style>
 </head>
 <body>
@@ -693,6 +754,7 @@ function UnstableUnicornsGame() {
       players={players}
       isHost={isHost}
       numPlayers={currentRoom?.numPlayers || players.length}
+      onRematch={() => setGameState('baby-selection')}
     />
   );
 
@@ -769,7 +831,7 @@ function BabySelection({ roomCode, playerName, players, isHost, onComplete }) {
 }
 
 // ========== GAME BOARD ==========
-function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers }) {
+function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers, onRematch }) {
   const [gameData, setGameData] = useState(null);
   const [myHand, setMyHand] = useState([]);
   const [zoomedCard, setZoomedCard] = useState(null);
@@ -783,6 +845,25 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
   const [targetPlayer, setTargetPlayer] = useState(null);
   const [cardsToChooseFrom, setCardsToChooseFrom] = useState([]);
   const [expandedPlayerHand, setExpandedPlayerHand] = useState(null);
+  const [winner, setWinner] = useState(null);
+
+  // Lanzar confeti
+  const launchConfetti = () => {
+    const colors = ['#ff0080','#ff8c00','#40e0d0','#667eea','#27ae60','#e74c3c','#f39c12'];
+    for (let i = 0; i < 80; i++) {
+      setTimeout(() => {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+        piece.style.width = (6 + Math.random() * 8) + 'px';
+        piece.style.height = (6 + Math.random() * 8) + 'px';
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), 4000);
+      }, i * 40);
+    }
+  };
 
   const showMessage = (msg) => {
     setMessage(msg);
@@ -822,6 +903,11 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
 
       setGameData(game);
       setMyHand(game.playerHands?.[playerName] || []);
+      // Mostrar pantalla de victoria si otro jugador ganó
+      if (game.winner && !winner) {
+        setWinner(game.winner);
+        launchConfetti();
+      }
     };
     ref.on('value', handler);
     return () => ref.off('value', handler);
@@ -979,7 +1065,11 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
       const stable = newGameData.playerStables[targetP];
       if (removed.type === 'baby' || removed.type === 'basic' || removed.type === 'magic') {
         stable.unicorns.push(removed);
-        if (stable.unicorns.length >= newGameData.unicornsToWin) showMessage(`🎉 ${targetP} GANÓ! 🎉`);
+        if (stable.unicorns.length >= newGameData.unicornsToWin) {
+          newGameData.winner = targetP;
+          setWinner(targetP);
+          launchConfetti();
+        }
       } else if (removed.type === 'upgrade') {
         stable.upgrades.push(removed);
       } else if (removed.type === 'downgrade') {
@@ -1069,11 +1159,38 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
     return stable?.downgrades?.some(c => c.filename === '0022') || false;
   };
 
-  if (!gameData) return (
+  const handleRematch = async () => {
+    await window.database.ref(`games/${roomCode}`).remove();
+    await window.database.ref(`baby-selections/${roomCode}`).remove();
+    await window.database.ref(`rooms/${roomCode}/state`).set('baby-selection');
+    setWinner(null);
+    setGameData(null);
+    setMyHand([]);
+    if (onRematch) onRematch();
+  };
+
+  // Escuchar cambios de estado de sala (para no-host detectar revancha)
+  useEffect(() => {
+    const ref = window.database.ref(`rooms/${roomCode}/state`);
+    const handler = (snap) => {
+      if (snap.val() === 'baby-selection' && winner) {
+        setWinner(null);
+        setGameData(null);
+        setMyHand([]);
+        if (onRematch) onRematch();
+      }
+    };
+    ref.on('value', handler);
+    return () => ref.off('value', handler);
+  }, [roomCode, winner]);
+
+  if (!gameData && !winner) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '1.5rem' }}>
       Iniciando...
     </div>
   );
+
+  if (!gameData) return null; // winner screen handled below
 
   const isMyTurn = gameData.currentPlayer === playerName;
   const myStable = gameData.playerStables?.[playerName] || { unicorns: [], upgrades: [], downgrades: [] };
@@ -1081,6 +1198,34 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {zoomedCard && <CardZoom card={zoomedCard} onClose={() => setZoomedCard(null)} />}
+
+      {/* Pantalla de victoria */}
+      {winner && (
+        <div className="winner-overlay">
+          <div className="winner-content">
+            <div style={{ fontSize: '4rem', marginBottom: '10px' }}>🏆</div>
+            <h1 className="rainbow-text" style={{ fontSize: '2.2rem', marginBottom: '10px' }}>
+              ¡{winner} ha ganado!
+            </h1>
+            <p style={{ color: '#666', fontSize: '1.1rem', marginBottom: '30px' }}>
+              {winner === playerName ? '¡Eres el campeón de los unicornios! 🦄' : `Mejor suerte la próxima vez 😅`}
+            </p>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {isHost && (
+                <button onClick={handleRematch} style={{ padding: '15px 35px', fontSize: '1.1rem', fontWeight: 'bold', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(102,126,234,0.4)' }}>
+                  🔄 Revancha
+                </button>
+              )}
+              {!isHost && (
+                <p style={{ color: '#999', fontSize: '0.9rem' }}>Esperando que el host inicie la revancha...</p>
+              )}
+              <button onClick={() => window.location.reload()} style={{ padding: '15px 35px', fontSize: '1.1rem', fontWeight: 'bold', background: '#95a5a6', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer' }}>
+                🚪 Salir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal acción de carta especial */}
       {selectedCardAction && (
@@ -1335,9 +1480,16 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
         </div>
 
         {/* Tu mano */}
-        <div className={`drop-zone ${draggedCard && dragSource?.type !== 'hand' ? 'drop-zone-active' : ''}`} onDragOver={handleDragOver} onDrop={handleDropOnHand} style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '15px', border: '3px solid #27ae60' }}>
+        <div className={`drop-zone ${draggedCard && dragSource?.type !== 'hand' ? 'drop-zone-active' : ''} ${myHand.length > 7 ? 'hand-over-limit' : ''}`} onDragOver={handleDragOver} onDrop={handleDropOnHand} style={{ background: 'rgba(255,255,255,0.95)', borderRadius: '12px', padding: '15px', border: `3px solid ${myHand.length > 7 ? '#e74c3c' : '#27ae60'}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <h3 style={{ color: '#27ae60', fontSize: '1.1rem' }}>✋ TU MANO ({myHand.length}/7)</h3>
+            <h3 style={{ color: myHand.length > 7 ? '#e74c3c' : '#27ae60', fontSize: '1.1rem' }}>
+              ✋ TU MANO ({myHand.length}/7)
+              {myHand.length > 7 && (
+                <span style={{ marginLeft: '10px', fontSize: '0.85rem', background: '#e74c3c', color: 'white', padding: '2px 10px', borderRadius: '20px', fontWeight: 'bold' }}>
+                  ⚠️ Descarta {myHand.length - 7}
+                </span>
+              )}
+            </h3>
             <button onClick={handleEndTurn} disabled={!isMyTurn} style={{ padding: '10px 20px', fontSize: '1rem', fontWeight: 'bold', background: isMyTurn ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' : '#ccc', color: 'white', border: 'none', borderRadius: '8px', cursor: isMyTurn ? 'pointer' : 'not-allowed' }}>
               {isMyTurn ? '⏭️ Terminar Turno' : '⏳ Espera'}
             </button>

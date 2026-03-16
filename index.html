@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unstable Unicorns - Versión 2.3</title>
+<title>Unstable Unicorns - Versión 2.5</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -314,10 +314,10 @@ const CARD_CATALOG = [
   {"filename":"0070","name":"Velocicornio","type":"magic","quantity":1,"bannedIn1v1":false},
   {"filename":"0071","name":"Veneno","type":"magic","quantity":1,"bannedIn1v1":false},
   {"filename":"0072","name":"Vortice","type":"magic","quantity":1,"bannedIn1v1":false},
-  {"filename":"0073","name":"reina del baile","type":"magic","quantity":1,"bannedIn1v1":false},
+  {"filename":"0073","name":"reina del baile","type":"magic","quantity":1,"bannedIn1v1":true},
   {"filename":"0074","name":"Unipaca","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
-  {"filename":"0075","name":"Unicornio Mama Ganso","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
-  {"filename":"0076","name":"Unicornio Nigromante","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
+  {"filename":"0075","name":"Unicornio Mama Ganso","type":"magic","quantity":1,"bannedIn1v1":true,"folder":"Imagenes2"},
+  {"filename":"0076","name":"Unicornio Nigromante","type":"magic","quantity":1,"bannedIn1v1":true,"folder":"Imagenes2"},
   {"filename":"0077","name":"Unicornio Oraculo","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
   {"filename":"0078","name":"Unicornio Angel Oscuro","type":"magic","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
   {"filename":"0079","name":"Hasta las cejas de cafeina","type":"upgrade","quantity":1,"bannedIn1v1":false,"folder":"Imagenes2"},
@@ -1009,6 +1009,30 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
     return () => ref.off('value', handler);
   }, [roomCode, playerName]);
 
+  // Contar unicornios en un establo (Unicornio Descomunal cuenta como 2)
+  const countUnicorns = (unicorns) => {
+    return unicorns.reduce((total, card) => {
+      return total + (card.filename === '0066' ? 2 : 1);
+    }, 0);
+  };
+
+  // Comprobar ganador cada vez que cambia cualquier establo
+  useEffect(() => {
+    if (!gameData || gameData.winner) return;
+    const stables = gameData.playerStables;
+    if (!stables) return;
+    for (const pName of Object.keys(stables)) {
+      const unicorns = stables[pName]?.unicorns || [];
+      if (countUnicorns(unicorns) >= gameData.unicornsToWin) {
+        const newGameData = { ...gameData, winner: pName };
+        updateGame(newGameData);
+        setWinner(pName);
+        launchConfetti();
+        return;
+      }
+    }
+  }, [gameData?.playerStables]);
+
   // Host inicializa la partida
   useEffect(() => {
     if (!isHost) return;
@@ -1088,10 +1112,12 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
         });
       }
 
+      const firstPlayerIndex = Math.floor(Math.random() * players.length);
+
       const game = {
         deck, discard: [], guarderia, playerHands, playerStables,
-        currentTurnIndex: 0,
-        currentPlayer: players[0].name,
+        currentTurnIndex: firstPlayerIndex,
+        currentPlayer: players[firstPlayerIndex].name,
         unicornsToWin: numPlayers >= 6 ? 6 : 7,
         lastUpdate: Date.now()
       };
@@ -1187,7 +1213,7 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
       const stable = newGameData.playerStables[targetP];
       if (removed.type === 'baby' || removed.type === 'basic' || removed.type === 'magic') {
         stable.unicorns.push(removed);
-        if (stable.unicorns.length >= newGameData.unicornsToWin) {
+        if (countUnicorns(stable.unicorns) >= newGameData.unicornsToWin) {
           newGameData.winner = targetP;
           setWinner(targetP);
           launchConfetti();
@@ -1212,11 +1238,10 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
     const idx = newGameData.playerHands[playerName].findIndex(c => c.id === draggedCard.id);
     if (idx !== -1) {
       const removed = newGameData.playerHands[playerName].splice(idx, 1)[0];
-      // Insertar en posición aleatoria del mazo
-      const pos = Math.floor(Math.random() * (newGameData.deck.length + 1));
-      newGameData.deck.splice(pos, 0, removed);
+      // Insertar al principio del mazo (próxima carta a robar)
+      newGameData.deck.unshift(removed);
       updateGame(newGameData);
-      showMessage(`${removed.name} mezclada en el mazo`);
+      showMessage(`${removed.name} colocada encima del mazo`);
     }
     setDraggedCard(null); setDragSource(null);
   };
@@ -1224,6 +1249,8 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
   const handleDropOnHand = (e) => {
     e.preventDefault();
     if (!draggedCard || !dragSource || dragSource.type === 'hand') return;
+    // Los bebés no pueden ir a la mano desde otros sitios, solo al establo
+    if (draggedCard.type === 'baby' && dragSource.type !== 'guarderia') return;
     const newGameData = deepCopyGame(gameData);
     const removed = removeCardFromSource(newGameData, dragSource, draggedCard.id);
     if (removed) { newGameData.playerHands[playerName].push(removed); updateGame(newGameData); showMessage(`${removed.name} a tu mano`); }
@@ -1285,9 +1312,10 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
     const idx = newGameData.guarderia.findIndex(c => c.id === card.id);
     if (idx !== -1) {
       const removed = newGameData.guarderia.splice(idx, 1)[0];
-      newGameData.playerHands[playerName].push(removed);
+      // Mandar directo al establo del jugador en vez de a la mano
+      newGameData.playerStables[playerName].unicorns.push(removed);
       updateGame(newGameData);
-      showMessage(`${removed.name} recuperada de la guardería`);
+      showMessage(`${removed.name} añadido a tu establo`);
     }
     setShowGuarderiaModal(false);
   };
@@ -1471,7 +1499,7 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {players.filter(p => p.name !== playerName).map((player) => {
               const stable = gameData.playerStables?.[player.name] || { unicorns: [], upgrades: [], downgrades: [] };
-              const unicornCount = stable.unicorns.length;
+              const unicornCount = countUnicorns(stable.unicorns);
               const isWinner = unicornCount >= gameData.unicornsToWin;
               const playerColor = `hsl(${players.findIndex(p => p.name === player.name) * 60}, 70%, 60%)`;
               return (
@@ -1561,7 +1589,7 @@ function GameBoard({ roomCode, playerName, gameMode, players, isHost, numPlayers
           <h3 style={{ marginBottom: '8px', color: '#667eea', fontSize: '0.95rem' }}>🏰 TU ESTABLO</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#555', marginBottom: '4px', fontWeight: 'bold' }}>🦄 Unicornios ({myStable.unicorns.length}/{gameData.unicornsToWin})</div>
+              <div style={{ fontSize: '0.75rem', color: '#555', marginBottom: '4px', fontWeight: 'bold' }}>🦄 Unicornios ({countUnicorns(myStable.unicorns)}/{gameData.unicornsToWin})</div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {myStable.unicorns.map((u, idx) => (
                   <Card key={`${u.id}-${idx}`} card={u} size="small" onClick={() => setZoomedCard(u)} draggable onDragStart={() => handleDragStart(u, { type: 'stable', player: playerName, section: 'unicorns' })} className={draggedCard?.id === u.id ? 'card-dragging' : ''} />
